@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tangy's — Website Manager</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Space+Grotesk:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FFF9F1; --panel:#FFFFFF; --line:rgba(32,16,8,0.1);
+    --ink:#211208; --muted:#8A7A6C;
+    --brand:#E23B23; --brand-dark:#B92D19; --brand-soft:#FDE7E2;
+    --gold:#C9852B; --good:#1E7A46; --good-soft:#E7F5EC; --bad:#C13324;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Space Grotesk',sans-serif;line-height:1.5;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  button{font-family:inherit;cursor:pointer;}
+  input,select,textarea{font-family:inherit;}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 24px;}
+
+  #loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .login-card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:36px;max-width:360px;width:100%;box-shadow:0 10px 30px rgba(32,16,8,0.06);}
+  .login-card .logo{font-family:'Permanent Marker',cursive;font-size:1.6rem;color:var(--brand);margin-bottom:4px;}
+  .login-card h1{font-size:1.02rem;font-weight:600;color:var(--muted);margin-bottom:24px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--gold);margin-bottom:6px;}
+  .field input,.field select,.field textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:11px 13px;color:var(--ink);font-size:0.9rem;}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--brand);outline:none;}
+  .btn{background:var(--brand);color:#fff;padding:12px 20px;border-radius:10px;font-weight:700;font-size:0.88rem;border:none;box-shadow:0 3px 0 var(--brand-dark);}
+  .btn:hover{filter:brightness(1.04);}
+  .btn-ghost{background:none;border:1.5px solid var(--line);color:var(--ink);padding:10px 16px;border-radius:10px;font-weight:600;font-size:0.85rem;}
+  .btn-danger{background:none;border:1.5px solid rgba(193,51,36,0.35);color:var(--bad);padding:8px 12px;border-radius:8px;font-size:0.78rem;font-weight:600;}
+  .btn-small{padding:8px 14px;font-size:0.82rem;}
+  .err{color:var(--bad);font-size:0.84rem;margin-top:12px;min-height:1em;}
+
+  #appScreen{display:none;min-height:100vh;}
+  header{position:sticky;top:0;z-index:10;background:rgba(255,249,241,0.95);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:16px 0;}
+  header .wrap{display:flex;justify-content:space-between;align-items:center;}
+  header .logo{font-family:'Permanent Marker',cursive;color:var(--brand);font-size:1.2rem;}
+  header .who{font-family:'IBM Plex Mono',monospace;font-size:0.76rem;color:var(--muted);}
+
+  .tabs{display:flex;gap:6px;padding:20px 0 0;border-bottom:1px solid var(--line);}
+  .tab-btn{padding:11px 18px;font-size:0.88rem;font-weight:700;color:var(--muted);border-bottom:3px solid transparent;}
+  .tab-btn.active{color:var(--brand);border-bottom-color:var(--brand);}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  main{padding:28px 0 90px;}
+  .section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;gap:12px;flex-wrap:wrap;}
+  .section-head h2{font-size:1.25rem;font-weight:800;}
+  .section-help{color:var(--muted);font-size:0.84rem;margin-bottom:20px;max-width:640px;}
+
+  .cat-row{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 20px;margin-bottom:12px;}
+  .cat-row-head{display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:12px;flex-wrap:wrap;}
+  .cat-row-head .ct-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .cat-row-head h3{font-size:1rem;font-weight:700;}
+  .style-pill{font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:var(--gold);border:1px solid rgba(201,133,43,0.4);padding:3px 9px;border-radius:999px;}
+  .count{color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:0.76rem;}
+  .chevron{transition:transform .15s ease;color:var(--muted);}
+  .cat-row.open .chevron{transform:rotate(90deg);}
+  .cat-actions{display:flex;gap:8px;}
+  .items-list{display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--line);}
+  .cat-row.open .items-list{display:block;}
+
+  .item-row{display:grid;grid-template-columns:44px 1fr auto auto;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);}
+  .item-row:last-child{border-bottom:none;}
+  .item-thumb{width:44px;height:44px;border-radius:9px;background:linear-gradient(135deg,#F3E7D8,#FCEFE0);overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--gold);}
+  .item-thumb img{width:100%;height:100%;object-fit:cover;}
+  .it-name{font-weight:700;font-size:0.9rem;}
+  .it-meta{color:var(--muted);font-size:0.76rem;margin-top:2px;}
+  .it-price{font-family:'IBM Plex Mono',monospace;color:var(--brand);font-size:0.86rem;white-space:nowrap;}
+  .it-price .was{color:var(--muted);text-decoration:line-through;font-size:0.74rem;margin-left:4px;}
+  .it-actions{display:flex;gap:8px;}
+
+  .add-item-btn{margin-top:14px;width:100%;background:var(--bg);border:1.5px dashed rgba(226,59,35,0.4);color:var(--brand);padding:11px;border-radius:10px;font-size:0.86rem;font-weight:700;}
+  .add-item-btn:hover{border-color:var(--brand);}
+  .add-cat-btn{background:var(--bg);border:1.5px dashed rgba(226,59,35,0.4);color:var(--brand);padding:16px;border-radius:14px;font-size:0.9rem;font-weight:700;width:100%;}
+
+  .banner-row{display:grid;grid-template-columns:90px 1fr auto;gap:14px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 18px;margin-bottom:12px;}
+  .banner-thumb{width:90px;height:60px;border-radius:9px;background:linear-gradient(135deg,#F3E7D8,#FCEFE0);overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--gold);}
+  .banner-thumb img{width:100%;height:100%;object-fit:cover;}
+  .bn-title{font-weight:700;font-size:0.92rem;}
+  .bn-sub{color:var(--muted);font-size:0.78rem;margin-top:2px;}
+
+  .settings-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px;max-width:480px;}
+  .settings-card .field:last-child{margin-bottom:0;}
+  .settings-hint{color:var(--muted);font-size:0.76rem;margin-top:-10px;margin-bottom:14px;}
+
+  .modal-overlay{position:fixed;inset:0;background:rgba(20,10,4,0.5);z-index:50;display:none;align-items:center;justify-content:center;padding:20px;}
+  .modal-overlay.show{display:flex;}
+  .modal-card{background:var(--panel);border-radius:16px;padding:26px;max-width:440px;width:100%;max-height:88vh;overflow-y:auto;}
+  .modal-card h3{font-size:1.05rem;font-weight:800;margin-bottom:18px;}
+  .checkbox-row{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+  .checkbox-row label{font-size:0.85rem;color:var(--ink);}
+  .modal-foot{display:flex;gap:10px;margin-top:6px;}
+  .modal-foot .btn{flex:1;}
+  .modal-foot .btn-ghost{flex:1;}
+  .price-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .addon-edit-row{display:grid;grid-template-columns:1fr 90px 32px;gap:8px;margin-bottom:8px;align-items:center;}
+  .addon-edit-row input{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px;font-size:0.84rem;}
+  .addon-remove-btn{width:32px;height:32px;border-radius:8px;border:1px solid rgba(193,51,36,0.3);color:var(--bad);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+
+  /* ---------- Discounts tab ---------- */
+  .discount-controls{display:grid;grid-template-columns:220px 1fr;gap:20px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:16px;align-items:end;}
+  .discount-controls .field{margin-bottom:0;}
+  .discount-controls select{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:11px 13px;font-size:0.88rem;}
+  .discount-presets{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .preset-btn{border:1.5px solid var(--line);border-radius:9px;padding:10px 16px;font-size:0.85rem;font-weight:700;color:var(--ink);}
+  .preset-btn.active{background:var(--brand);color:#fff;border-color:var(--brand);}
+  .discount-presets input{background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:10px 13px;font-size:0.85rem;}
+  .discount-select-all{margin-bottom:10px;font-size:0.86rem;font-weight:600;}
+  .discount-item-row{display:grid;grid-template-columns:26px 44px 1fr auto;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:8px;}
+  .discount-cat-label{font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--gold);text-transform:uppercase;margin:16px 0 8px;}
+  .discount-sale-badge{font-size:0.7rem;font-weight:700;color:var(--good);background:var(--good-soft);padding:3px 8px;border-radius:999px;white-space:nowrap;}
+  .discount-actions{display:flex;gap:10px;margin-top:18px;}
+  .discount-actions .btn, .discount-actions .btn-ghost{flex:0 0 auto;}
+
+  .upload-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+  .upload-preview{width:60px;height:60px;border-radius:10px;background:linear-gradient(135deg,#F3E7D8,#FCEFE0);overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0;}
+  .upload-preview img{width:100%;height:100%;object-fit:cover;}
+  .upload-btn{background:var(--bg);border:1.5px dashed rgba(226,59,35,0.4);color:var(--brand);padding:10px 14px;border-radius:9px;font-size:0.82rem;font-weight:700;flex:1;text-align:center;}
+  .upload-status{font-size:0.76rem;color:var(--muted);margin-top:4px;}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--good);color:#fff;padding:12px 22px;border-radius:10px;font-weight:700;font-size:0.86rem;z-index:99;opacity:0;pointer-events:none;transition:opacity .2s ease;}
+  .toast.show{opacity:1;}
+  .toast.err{background:var(--bad);}
+
+  .empty-state{color:var(--muted);font-size:0.86rem;text-align:center;padding:30px 0;}
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="logo">Tangy&#8217;s</div>
+    <h1>Website Manager — sign in</h1>
+    <div class="field"><label>Email</label><input type="email" id="loginEmail" autocomplete="username"></div>
+    <div class="field"><label>Password</label><input type="password" id="loginPass" autocomplete="current-password"></div>
+    <button class="btn" style="width:100%;" onclick="doLogin()">Sign in</button>
+    <div class="err" id="loginErr"></div>
+  </div>
+</div>
+
+<div id="appScreen">
+  <header>
+    <div class="wrap">
+      <div class="logo">Tangy&#8217;s <span style="font-family:'Space Grotesk',sans-serif;color:var(--muted);font-size:0.85rem;">— Website Manager</span></div>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <span class="who mono" id="whoEmail"></span>
+        <button class="btn-ghost btn-small" onclick="doLogout()">Sign out</button>
+      </div>
+    </div>
+    <div class="wrap tabs">
+      <button class="tab-btn active" data-tab="menu" onclick="switchTab('menu')">Menu</button>
+      <button class="tab-btn" data-tab="discounts" onclick="switchTab('discounts')">Discounts</button>
+      <button class="tab-btn" data-tab="banners" onclick="switchTab('banners')">Homepage Banners</button>
+      <button class="tab-btn" data-tab="settings" onclick="switchTab('settings')">Site Settings</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+
+      <div class="tab-panel active" id="tab-menu">
+        <div class="section-head">
+          <h2>Menu categories &amp; items</h2>
+          <button class="btn btn-small" onclick="openCatModal()">+ New category</button>
+        </div>
+        <p class="section-help">Categories are the sections customers see on the site (Burgers, Wraps, Deals...). Click a category to open it and manage its items.</p>
+        <div id="catList"></div>
+        <div id="emptyState" class="empty-state" style="display:none;">No categories yet — add your first one above.</div>
+      </div>
+
+      <div class="tab-panel" id="tab-discounts">
+        <div class="section-head"><h2>Discounts</h2></div>
+        <p class="section-help">Put a whole category on sale at once, or pick specific items. This sets each item's "was" price automatically — the site shows the strikethrough and % off badge on its own.</p>
+
+        <div class="discount-controls">
+          <div class="field">
+            <label>Category</label>
+            <select id="discCategorySelect" onchange="renderDiscountItems()">
+              <option value="__all__">All categories</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Discount</label>
+            <div class="discount-presets" id="discPresets">
+              <button class="preset-btn" data-pct="10" onclick="setDiscPreset(10)">10%</button>
+              <button class="preset-btn active" data-pct="15" onclick="setDiscPreset(15)">15%</button>
+              <button class="preset-btn" data-pct="20" onclick="setDiscPreset(20)">20%</button>
+              <input type="number" id="discPctInput" placeholder="Custom %" style="width:100px;" oninput="clearDiscPreset()">
+            </div>
+          </div>
+        </div>
+
+        <div class="discount-select-all">
+          <label><input type="checkbox" id="discSelectAll" onchange="toggleSelectAllDiscount(this.checked)"> Select all items shown below</label>
+        </div>
+
+        <div id="discountItemList"></div>
+
+        <div class="discount-actions">
+          <button class="btn" onclick="applyBulkDiscount()">Apply discount to selected</button>
+          <button class="btn-ghost" onclick="removeBulkDiscount()">Remove discount from selected</button>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="tab-banners">
+        <div class="section-head">
+          <h2>Homepage banners</h2>
+          <button class="btn btn-small" onclick="openBannerModal()">+ New banner</button>
+        </div>
+        <p class="section-help">These are the rotating photos at the top of the site — good for calling out a deal, a new item, or just showing off the place. Aim for wide photos, roughly 1600&times;800px.</p>
+        <div id="bannerList"></div>
+        <div id="bannerEmptyState" class="empty-state" style="display:none;">No banners yet — add one above.</div>
+      </div>
+
+      <div class="tab-panel" id="tab-settings">
+        <div class="section-head"><h2>Site settings</h2></div>
+        <p class="section-help">A few site-wide things that don't belong to any one item.</p>
+        <div class="settings-card">
+          <div class="field">
+            <label>Announcement bar text</label>
+            <input type="text" id="setAnnounce" placeholder="e.g. Order straight through WhatsApp — no app needed.">
+          </div>
+          <div class="settings-hint">Shows in the thin red bar at the very top of the site.</div>
+
+          <div class="field">
+            <label>WhatsApp number for orders</label>
+            <input type="text" id="setWhatsapp" placeholder="923181450075">
+          </div>
+          <div class="settings-hint">Country code, no + or spaces — e.g. 923181450075 for +92 318 1450075.</div>
+
+          <div class="field">
+            <label>Tax rate (%)</label>
+            <input type="number" id="setTax" placeholder="0">
+          </div>
+          <div class="settings-hint">Leave at 0 if you don't want a tax line shown at checkout.</div>
+
+          <div class="field">
+            <label>Promo code</label>
+            <input type="text" id="setPromoCode" placeholder="e.g. TANGY10">
+          </div>
+          <div class="field">
+            <label>Promo discount (%)</label>
+            <input type="number" id="setPromoPct" placeholder="0">
+          </div>
+          <div class="settings-hint">Leave the code blank to turn promo codes off entirely.</div>
+
+          <button class="btn" style="width:100%;" onclick="saveSettings()">Save settings</button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- Category modal -->
+<div class="modal-overlay" id="catModalOverlay">
+  <div class="modal-card">
+    <h3 id="catModalTitle">New category</h3>
+    <div class="field"><label>Name</label><input type="text" id="catName" placeholder="e.g. Burgers"></div>
+    <div class="field">
+      <label>Display style</label>
+      <select id="catStyle">
+        <option value="grid">Grid cards (normal menu items)</option>
+        <option value="deal">Deal cards (wider, for combos)</option>
+      </select>
+    </div>
+    <div class="field"><label>Order (lower shows first)</label><input type="number" id="catOrder" value="0"></div>
+    <div class="modal-foot">
+      <button class="btn-ghost" onclick="closeCatModal()">Cancel</button>
+      <button class="btn" onclick="saveCategory()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Item modal -->
+<div class="modal-overlay" id="itemModalOverlay">
+  <div class="modal-card">
+    <h3 id="itemModalTitle">New item</h3>
+
+    <div class="upload-row">
+      <div class="upload-preview" id="itPhotoPreview">&#128247;</div>
+      <div style="flex:1;">
+        <button class="upload-btn" onclick="document.getElementById('itPhotoFile').click()">Upload photo</button>
+        <input type="file" id="itPhotoFile" accept="image/*" style="display:none;" onchange="handleItemPhotoUpload(this)">
+        <div class="upload-status" id="itPhotoStatus"></div>
+      </div>
+    </div>
+
+    <div class="field"><label>Name</label><input type="text" id="itName" placeholder="e.g. Grill Burger"></div>
+    <div class="field"><label>Description</label><textarea id="itDesc" rows="2" placeholder="Short line customers see on the card"></textarea></div>
+
+    <div class="price-row">
+      <div class="field"><label>Price (Rs.)</label><input type="number" id="itPrice" placeholder="450"></div>
+      <div class="field"><label>Was-price (optional)</label><input type="number" id="itOriginalPrice" placeholder="e.g. 550"></div>
+    </div>
+    <div class="settings-hint" style="margin-top:-8px;">Fill in "Was-price" to show a sale — the site strikes it through and shows a % off badge automatically.</div>
+
+    <div class="field"><label>Tag</label><input type="text" id="itTag" placeholder="e.g. Classic, Wrap, Deal"></div>
+    <div class="field"><label>Order (lower shows first)</label><input type="number" id="itOrder" value="0"></div>
+
+    <div class="field">
+      <label>Add-ons (optional extras customers can tap on, e.g. Extra Cheese)</label>
+      <div id="addonRows"></div>
+      <button class="upload-btn" style="margin-top:4px;" onclick="addAddonRow()">+ Add an add-on</button>
+    </div>
+
+    <div class="checkbox-row"><input type="checkbox" id="itSig"><label for="itSig">Signature item (highlighted style)</label></div>
+    <div class="checkbox-row"><input type="checkbox" id="itBest"><label for="itBest">Best Seller badge</label></div>
+    <div class="checkbox-row"><input type="checkbox" id="itNew"><label for="itNew">New badge</label></div>
+    <div class="checkbox-row"><input type="checkbox" id="itPlaceholder"><label for="itPlaceholder">Price is a placeholder (shows a * on the site)</label></div>
+    <div class="modal-foot">
+      <button class="btn-ghost" onclick="closeItemModal()">Cancel</button>
+      <button class="btn" onclick="saveItem()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Banner modal -->
+<div class="modal-overlay" id="bannerModalOverlay">
+  <div class="modal-card">
+    <h3 id="bannerModalTitle">New banner</h3>
+    <div class="upload-row">
+      <div class="upload-preview" id="bnPhotoPreview" style="width:90px;height:60px;">&#128247;</div>
+      <div style="flex:1;">
+        <button class="upload-btn" onclick="document.getElementById('bnPhotoFile').click()">Upload photo</button>
+        <input type="file" id="bnPhotoFile" accept="image/*" style="display:none;" onchange="handleBannerPhotoUpload(this)">
+        <div class="upload-status" id="bnPhotoStatus"></div>
+      </div>
+    </div>
+    <div class="field"><label>Title</label><input type="text" id="bnTitle" placeholder="e.g. Tangy's Box — feeds the table."></div>
+    <div class="field"><label>Subtitle</label><input type="text" id="bnSubtitle" placeholder="A short supporting line"></div>
+    <div class="field"><label>Badge text (optional)</label><input type="text" id="bnBadge" placeholder="e.g. Rs. 2,299 or 20% OFF"></div>
+    <div class="field"><label>Order (lower shows first)</label><input type="number" id="bnOrder" value="0"></div>
+    <div class="modal-foot">
+      <button class="btn-ghost" onclick="closeBannerModal()">Cancel</button>
+      <button class="btn" onclick="saveBanner()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ====== CONNECT THIS TO YOUR SUPABASE PROJECT (see SETUP.md) ======
+const SUPABASE_URL = 'https://sfsggkofnadleawlelih.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmc2dna29mbmFkbGVhd2xlbGloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3MzUxNTgsImV4cCI6MjEwMzMxMTE1OH0.3Bhdhp1QMbB9iJIben36y9DNxyaxgAlSssongOQJ7Qs';
+// ====================================================================
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const STORAGE_BUCKET = 'site-images';
+
+let categories = [], items = [], banners = [], settings = {};
+let editingCatId = null, editingItemId = null, itemModalCategoryId = null;
+let editingBannerId = null;
+let pendingItemPhotoUrl = null, pendingBannerPhotoUrl = null;
+
+function showToast(msg, isErr){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isErr ? ' err' : '');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// ---------- Tabs ----------
+function switchTab(name){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active', p.id==='tab-'+name));
+}
+
+// ---------- Auth ----------
+async function doLogin(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginErr');
+  errEl.textContent = '';
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if(error){ errEl.textContent = 'Sign-in failed: ' + error.message; return; }
+  showApp(data.user);
+}
+async function doLogout(){
+  await sb.auth.signOut();
+  document.getElementById('appScreen').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+function showApp(user){
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'block';
+  document.getElementById('whoEmail').textContent = user.email;
+  loadData();
+}
+(async function checkSession(){
+  const { data } = await sb.auth.getSession();
+  if(data.session){ showApp(data.session.user); }
+})();
+
+// ---------- Load everything ----------
+async function loadData(){
+  const [{data:cats}, {data:its}, {data:bnrs}, {data:sett}] = await Promise.all([
+    sb.from('categories').select('*').order('sort_order'),
+    sb.from('items').select('*').order('sort_order'),
+    sb.from('banners').select('*').order('sort_order'),
+    sb.from('site_settings').select('*').eq('id','main').maybeSingle(),
+  ]);
+  categories = cats || [];
+  items = its || [];
+  banners = bnrs || [];
+  settings = sett || { id:'main', announcement_text:'', tax_rate:0, promo_code:'', promo_discount_percent:0, whatsapp_number:'923181450075' };
+  renderCategories();
+  renderBanners();
+  renderSettings();
+  populateDiscountCategorySelect();
+  renderDiscountItems();
+}
+
+// ---------- Categories & items ----------
+function renderCategories(){
+  const list = document.getElementById('catList');
+  document.getElementById('emptyState').style.display = categories.length ? 'none' : 'block';
+  list.innerHTML = categories.map(cat => {
+    const catItems = items.filter(i => i.category_id === cat.id);
+    return `
+      <div class="cat-row" id="cat-${cat.id}">
+        <div class="cat-row-head" onclick="toggleCat('${cat.id}')">
+          <div class="ct-left">
+            <span class="chevron">&#9656;</span>
+            <h3>${esc(cat.name)}</h3>
+            <span class="style-pill">${cat.style}</span>
+            <span class="count">${catItems.length} item${catItems.length===1?'':'s'}</span>
+          </div>
+          <div class="cat-actions" onclick="event.stopPropagation()">
+            <button class="btn-ghost btn-small" onclick="openCatModal('${cat.id}')">Edit</button>
+            <button class="btn-danger" onclick="deleteCategory('${cat.id}')">Delete</button>
+          </div>
+        </div>
+        <div class="items-list">
+          ${catItems.length ? catItems.map(it => `
+            <div class="item-row">
+              <div class="item-thumb">${it.image_url ? `<img src="${it.image_url}" alt="">` : '&#128247;'}</div>
+              <div>
+                <div class="it-name">${esc(it.name)} ${it.is_signature?'&#9733;':''} ${it.is_bestseller?'&#127942;':''} ${it.is_new?'&#10024;':''}</div>
+                <div class="it-meta">${esc(it.tag||'')} ${it.is_placeholder ? '&middot; placeholder price' : ''}</div>
+              </div>
+              <div class="it-price">Rs. ${Number(it.price).toLocaleString()}${it.original_price ? `<span class="was">Rs. ${Number(it.original_price).toLocaleString()}</span>` : ''}</div>
+              <div class="it-actions">
+                <button class="btn-ghost btn-small" onclick="openItemModal('${cat.id}','${it.id}')">Edit</button>
+                <button class="btn-danger" onclick="deleteItem('${it.id}')">Delete</button>
+              </div>
+            </div>
+          `).join('') : '<div class="empty-state">No items in this category yet.</div>'}
+          <button class="add-item-btn" onclick="openItemModal('${cat.id}')">+ Add item to ${esc(cat.name)}</button>
+        </div>
+      </div>
+    `;
+  }).join('') + `<button class="add-cat-btn" onclick="openCatModal()">+ New category</button>`;
+}
+function toggleCat(id){ document.getElementById('cat-'+id).classList.toggle('open'); }
+
+function openCatModal(id){
+  editingCatId = id || null;
+  document.getElementById('catModalTitle').textContent = id ? 'Edit category' : 'New category';
+  if(id){
+    const cat = categories.find(c=>c.id===id);
+    document.getElementById('catName').value = cat.name;
+    document.getElementById('catStyle').value = cat.style;
+    document.getElementById('catOrder').value = cat.sort_order;
+  } else {
+    document.getElementById('catName').value = '';
+    document.getElementById('catStyle').value = 'grid';
+    document.getElementById('catOrder').value = categories.length;
+  }
+  document.getElementById('catModalOverlay').classList.add('show');
+}
+function closeCatModal(){ document.getElementById('catModalOverlay').classList.remove('show'); }
+
+async function saveCategory(){
+  const name = document.getElementById('catName').value.trim();
+  const style = document.getElementById('catStyle').value;
+  const sort_order = Number(document.getElementById('catOrder').value) || 0;
+  if(!name){ alert('Give the category a name.'); return; }
+  if(editingCatId){
+    const { error } = await sb.from('categories').update({ name, style, sort_order }).eq('id', editingCatId);
+    if(error){ showToast('Could not save: ' + error.message, true); return; }
+  } else {
+    const id = name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') + '-' + Math.random().toString(36).slice(2,6);
+    const { error } = await sb.from('categories').insert({ id, name, style, sort_order });
+    if(error){ showToast('Could not save: ' + error.message, true); return; }
+  }
+  closeCatModal();
+  showToast('Category saved');
+  loadData();
+}
+async function deleteCategory(id){
+  const cat = categories.find(c=>c.id===id);
+  if(!confirm(`Delete "${cat.name}" and every item in it? This can't be undone.`)) return;
+  const { error } = await sb.from('categories').delete().eq('id', id);
+  if(error){ showToast('Could not delete: ' + error.message, true); return; }
+  showToast('Category deleted');
+  loadData();
+}
+
+function openItemModal(categoryId, itemId){
+  itemModalCategoryId = categoryId;
+  editingItemId = itemId || null;
+  pendingItemPhotoUrl = null;
+  document.getElementById('itPhotoStatus').textContent = '';
+  document.getElementById('itemModalTitle').textContent = itemId ? 'Edit item' : 'New item';
+  if(itemId){
+    const it = items.find(i=>i.id===itemId);
+    document.getElementById('itName').value = it.name;
+    document.getElementById('itDesc').value = it.description || '';
+    document.getElementById('itPrice').value = it.price;
+    document.getElementById('itOriginalPrice').value = it.original_price || '';
+    document.getElementById('itTag').value = it.tag || '';
+    document.getElementById('itOrder').value = it.sort_order;
+    document.getElementById('itSig').checked = !!it.is_signature;
+    document.getElementById('itBest').checked = !!it.is_bestseller;
+    document.getElementById('itNew').checked = !!it.is_new;
+    document.getElementById('itPlaceholder').checked = !!it.is_placeholder;
+    document.getElementById('itPhotoPreview').innerHTML = it.image_url ? `<img src="${it.image_url}" alt="">` : '&#128247;';
+    pendingItemPhotoUrl = it.image_url || null;
+    renderAddonRows(Array.isArray(it.addons) ? it.addons : []);
+  } else {
+    document.getElementById('itName').value = '';
+    document.getElementById('itDesc').value = '';
+    document.getElementById('itPrice').value = '';
+    document.getElementById('itOriginalPrice').value = '';
+    document.getElementById('itTag').value = '';
+    document.getElementById('itOrder').value = items.filter(i=>i.category_id===categoryId).length;
+    document.getElementById('itSig').checked = false;
+    document.getElementById('itBest').checked = false;
+    document.getElementById('itNew').checked = false;
+    document.getElementById('itPlaceholder').checked = true;
+    document.getElementById('itPhotoPreview').innerHTML = '&#128247;';
+    renderAddonRows([]);
+  }
+  document.getElementById('itemModalOverlay').classList.add('show');
+}
+function closeItemModal(){ document.getElementById('itemModalOverlay').classList.remove('show'); }
+
+function renderAddonRows(addons){
+  const wrap = document.getElementById('addonRows');
+  wrap.innerHTML = addons.map((a,i) => `
+    <div class="addon-edit-row" data-idx="${i}">
+      <input type="text" value="${a.name.replace(/"/g,'&quot;')}" placeholder="e.g. Extra Cheese" onchange="updateAddonRow(${i}, 'name', this.value)">
+      <input type="number" value="${a.price}" placeholder="Rs." onchange="updateAddonRow(${i}, 'price', this.value)">
+      <button class="addon-remove-btn" onclick="removeAddonRow(${i})">&times;</button>
+    </div>
+  `).join('');
+}
+function getCurrentAddons(){
+  return Array.from(document.querySelectorAll('#addonRows .addon-edit-row')).map(row => {
+    const inputs = row.querySelectorAll('input');
+    return { name: inputs[0].value.trim(), price: Number(inputs[1].value) || 0 };
+  }).filter(a => a.name);
+}
+function addAddonRow(){
+  const current = getCurrentAddons();
+  current.push({ name:'', price:0 });
+  renderAddonRows(current);
+}
+function updateAddonRow(idx, field, value){
+  const current = getCurrentAddons();
+  if(current[idx]) current[idx][field] = field==='price' ? Number(value)||0 : value;
+}
+function removeAddonRow(idx){
+  const current = getCurrentAddons();
+  current.splice(idx,1);
+  renderAddonRows(current);
+}
+
+async function handleItemPhotoUpload(input){
+  const file = input.files[0];
+  if(!file) return;
+  const statusEl = document.getElementById('itPhotoStatus');
+  statusEl.textContent = 'Uploading...';
+  try{
+    const path = `items/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g,'_')}`;
+    const { error } = await sb.storage.from(STORAGE_BUCKET).upload(path, file, { upsert:true });
+    if(error) throw error;
+    const { data } = sb.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+    pendingItemPhotoUrl = data.publicUrl;
+    document.getElementById('itPhotoPreview').innerHTML = `<img src="${pendingItemPhotoUrl}" alt="">`;
+    statusEl.textContent = 'Photo ready — click Save to keep it.';
+  } catch(e){
+    statusEl.textContent = 'Upload failed: ' + e.message + ' (see SETUP.md step 8 — storage bucket needs to exist first)';
+  }
+}
+
+async function saveItem(){
+  const name = document.getElementById('itName').value.trim();
+  const description = document.getElementById('itDesc').value.trim();
+  const price = Number(document.getElementById('itPrice').value) || 0;
+  const originalPriceRaw = document.getElementById('itOriginalPrice').value;
+  const original_price = originalPriceRaw ? Number(originalPriceRaw) : null;
+  const tag = document.getElementById('itTag').value.trim();
+  const sort_order = Number(document.getElementById('itOrder').value) || 0;
+  const is_signature = document.getElementById('itSig').checked;
+  const is_bestseller = document.getElementById('itBest').checked;
+  const is_new = document.getElementById('itNew').checked;
+  const is_placeholder = document.getElementById('itPlaceholder').checked;
+  if(!name){ alert('Give the item a name.'); return; }
+
+  const payload = { category_id: itemModalCategoryId, name, description, price, original_price, tag, sort_order, is_signature, is_bestseller, is_new, is_placeholder, image_url: pendingItemPhotoUrl, addons: getCurrentAddons() };
+
+  if(editingItemId){
+    const { error } = await sb.from('items').update(payload).eq('id', editingItemId);
+    if(error){ showToast('Could not save: ' + error.message, true); return; }
+  } else {
+    const { error } = await sb.from('items').insert(payload);
+    if(error){ showToast('Could not save: ' + error.message, true); return; }
+  }
+  closeItemModal();
+  showToast('Item saved');
+  loadData();
+}
+async function deleteItem(id){
+  const it = items.find(i=>i.id===id);
+  if(!confirm(`Delete "${it.name}"?`)) return;
+  const { error } = await sb.from('items').delete().eq('id', id);
+  if(error){ showToast('Could not delete: ' + error.message, true); return; }
+  showToast('Item deleted');
+  loadData();
+}
+
+// ---------- Banners ----------
+function renderBanners(){
+  const list = document.getElementById('bannerList');
+  document.getElementById('bannerEmptyState').style.display = banners.length ? 'none' : 'block';
+  list.innerHTML = banners.map(b => `
+    <div class="banner-row">
+      <div class="banner-thumb">${b.image_url ? `<img src="${b.image_url}" alt="">` : '&#128247;'}</div>
+      <div>
+        <div class="bn-title">${esc(b.title)}</div>
+        <div class="bn-sub">${esc(b.subtitle||'')} ${b.badge_text?`&middot; badge: ${esc(b.badge_text)}`:''}</div>
+      </div>
+      <div class="it-actions">
+        <button class="btn-ghost btn-small" onclick="openBannerModal('${b.id}')">Edit</button>
+        <button class="btn-danger" onclick="deleteBanner('${b.id}')">Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openBannerModal(id){
+  editingBannerId = id || null;
+  pendingBannerPhotoUrl = null;
+  document.getElementById('bnPhotoStatus').textContent = '';
+  document.getElementById('bannerModalTitle').textContent = id ? 'Edit banner' : 'New banner';
+  if(id){
+    const b = banners.find(x=>x.id===id);
+    document.getElementById('bnTitle').value = b.title;
+    document.getElementById('bnSubtitle').value = b.subtitle || '';
+    document.getElementById('bnBadge').value = b.badge_text || '';
+    document.getElementById('bnOrder').value = b.sort_order;
+    document.getElementById('bnPhotoPreview').innerHTML = b.image_url ? `<img src="${b.image_url}" alt="">` : '&#128247;';
+    pendingBannerPhotoUrl = b.image_url || null;
+  } else {
+    document.getElementById('bnTitle').value = '';
+    document.getElementById('bnSubtitle').value = '';
+    document.getElementById('bnBadge').value = '';
+    document.getElementById('bnOrder').value = banners.length;
+    document.getElementById('bnPhotoPreview').innerHTML = '&#128247;';
+  }
+  document.getElementById('bannerModalOverlay').classList.add('show');
+}
+function closeBannerModal(){ document.getElementById('bannerModalOverlay').classList.remove('show'); }
+
+async function handleBannerPhotoUpload(input){
+  const file = input.files[0];
+  if(!file) return;
+  const statusEl = document.getElementById('bnPhotoStatus');
+  statusEl.textContent = 'Uploading...';
+  try{
+    const path = `banners/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g,'_')}`;
+    const { error } = await sb.storage.from(STORAGE_BUCKET).upload(path, file, { upsert:true });
+    if(error) throw error;
+    const { data } = sb.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+    pendingBannerPhotoUrl = data.publicUrl;
+    document.getElementById('bnPhotoPreview').innerHTML = `<img src="${pendingBannerPhotoUrl}" alt="">`;
+    statusEl.textContent = 'Photo ready — click Save to keep it.';
+  } catch(e){
+    statusEl.textContent = 'Upload failed: ' + e.message + ' (see SETUP.md step 8 — storage bucket needs to exist first)';
+  }
+}
+
+async function saveBanner(){
+  const title = document.getElementById('bnTitle').value.trim();
+  const subtitle = document.getElementById('bnSubtitle').value.trim();
+  const badge_text = document.getElementById('bnBadge').value.trim();
+  const sort_order = Number(document.getElementById('bnOrder').value) || 0;
+  if(!title){ alert('Give the banner a title.'); return; }
+  const payload = { title, subtitle, badge_text, sort_order, image_url: pendingBannerPhotoUrl };
+  if(editingBannerId){
+    const { error } = await sb.from('banners').update(payload).eq('id', editingBannerId);
+    if(error){ showToast('Could not save: ' + error.message, true); return; }
+  } else {
+    const { error } = await sb.from('banners').insert(payload);
+    if(error){ showToast('Could not save: ' + error.message, true); return; }
+  }
+  closeBannerModal();
+  showToast('Banner saved');
+  loadData();
+}
+async function deleteBanner(id){
+  if(!confirm('Delete this banner?')) return;
+  const { error } = await sb.from('banners').delete().eq('id', id);
+  if(error){ showToast('Could not delete: ' + error.message, true); return; }
+  showToast('Banner deleted');
+  loadData();
+}
+
+// ---------- Discounts ----------
+let discSelectedPct = 15;
+
+function populateDiscountCategorySelect(){
+  const sel = document.getElementById('discCategorySelect');
+  const current = sel.value || '__all__';
+  sel.innerHTML = `<option value="__all__">All categories</option>` +
+    categories.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  sel.value = categories.some(c=>c.id===current) ? current : '__all__';
+}
+
+function setDiscPreset(pct){
+  discSelectedPct = pct;
+  document.getElementById('discPctInput').value = '';
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.toggle('active', Number(b.dataset.pct)===pct));
+}
+function clearDiscPreset(){
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  const v = Number(document.getElementById('discPctInput').value);
+  discSelectedPct = v || 0;
+}
+
+function renderDiscountItems(){
+  const sel = document.getElementById('discCategorySelect');
+  const catId = sel ? sel.value : '__all__';
+  const list = document.getElementById('discountItemList');
+  const relevantCats = catId === '__all__' ? categories : categories.filter(c=>c.id===catId);
+
+  list.innerHTML = relevantCats.map(cat => {
+    const catItems = items.filter(i => i.category_id === cat.id);
+    if(!catItems.length) return '';
+    const rows = catItems.map(it => {
+      const onSale = it.original_price && Number(it.original_price) > Number(it.price);
+      const pct = onSale ? Math.round((1 - it.price/it.original_price)*100) : 0;
+      return `
+        <div class="discount-item-row">
+          <input type="checkbox" class="disc-item-checkbox" data-id="${it.id}">
+          <div class="item-thumb">${it.image_url ? `<img src="${it.image_url}" alt="">` : '&#128247;'}</div>
+          <div>
+            <div class="it-name">${esc(it.name)}</div>
+            <div class="it-meta">Rs. ${Number(it.price).toLocaleString()}${onSale ? ` (was Rs. ${Number(it.original_price).toLocaleString()})` : ''}</div>
+          </div>
+          ${onSale ? `<span class="discount-sale-badge">${pct}% off</span>` : '<span></span>'}
+        </div>`;
+    }).join('');
+    return catId === '__all__' ? `<div class="discount-cat-label">${esc(cat.name)}</div>${rows}` : rows;
+  }).join('') || '<div class="empty-state">No items in this category yet.</div>';
+
+  document.getElementById('discSelectAll').checked = false;
+}
+
+function toggleSelectAllDiscount(checked){
+  document.querySelectorAll('.disc-item-checkbox').forEach(cb => cb.checked = checked);
+}
+function getSelectedDiscountIds(){
+  return Array.from(document.querySelectorAll('.disc-item-checkbox:checked')).map(cb => cb.dataset.id);
+}
+
+async function applyBulkDiscount(){
+  const ids = getSelectedDiscountIds();
+  if(!ids.length){ alert('Select at least one item first.'); return; }
+  const pct = discSelectedPct;
+  if(!pct || pct <= 0 || pct >= 100){ alert('Enter a discount percentage between 1 and 99, or pick a preset.'); return; }
+
+  const updates = ids.map(id => {
+    const it = items.find(i=>i.id===id);
+    if(!it) return null;
+    const base = (it.original_price && Number(it.original_price) > 0) ? Number(it.original_price) : Number(it.price);
+    const newPrice = Math.round(base * (1 - pct/100));
+    return sb.from('items').update({ price: newPrice, original_price: base }).eq('id', id);
+  }).filter(Boolean);
+
+  const results = await Promise.all(updates);
+  const failed = results.find(r => r.error);
+  if(failed){ showToast('Some items failed to update: ' + failed.error.message, true); }
+  else showToast(`${ids.length} item${ids.length===1?'':'s'} put on sale`);
+  loadData();
+}
+
+async function removeBulkDiscount(){
+  const ids = getSelectedDiscountIds();
+  if(!ids.length){ alert('Select at least one item first.'); return; }
+
+  const updates = ids.map(id => {
+    const it = items.find(i=>i.id===id);
+    if(!it || !it.original_price) return null;
+    return sb.from('items').update({ price: it.original_price, original_price: null }).eq('id', id);
+  }).filter(Boolean);
+
+  if(!updates.length){ showToast('None of the selected items are on sale.', true); return; }
+  const results = await Promise.all(updates);
+  const failed = results.find(r => r.error);
+  if(failed){ showToast('Some items failed to update: ' + failed.error.message, true); }
+  else showToast('Discount removed');
+  loadData();
+}
+
+// ---------- Settings ----------
+function renderSettings(){
+  document.getElementById('setAnnounce').value = settings.announcement_text || '';
+  document.getElementById('setWhatsapp').value = settings.whatsapp_number || '';
+  document.getElementById('setTax').value = settings.tax_rate || 0;
+  document.getElementById('setPromoCode').value = settings.promo_code || '';
+  document.getElementById('setPromoPct').value = settings.promo_discount_percent || 0;
+}
+async function saveSettings(){
+  const payload = {
+    id: 'main',
+    announcement_text: document.getElementById('setAnnounce').value.trim(),
+    whatsapp_number: document.getElementById('setWhatsapp').value.trim(),
+    tax_rate: Number(document.getElementById('setTax').value) || 0,
+    promo_code: document.getElementById('setPromoCode').value.trim(),
+    promo_discount_percent: Number(document.getElementById('setPromoPct').value) || 0,
+  };
+  const { error } = await sb.from('site_settings').upsert(payload);
+  if(error){ showToast('Could not save: ' + error.message, true); return; }
+  showToast('Settings saved');
+  loadData();
+}
+</script>
+
+</body>
+</html>
