@@ -460,7 +460,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const PLACEHOLDER_PHOTO_SVG = `<svg class="ph-icon" width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M4 7h16v11a1 1 0 01-1 1H5a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.5"/><path d="M4 7l2-3h12l2 3" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="13" r="3" stroke="currentColor" stroke-width="1.5"/></svg>`;
 
 const FALLBACK_CATEGORIES = [
-  {id:'best', name:'Best Sellers', style:'grid', sort_order:1},
+  {id:'best', name:'Best Sellers', style:'grid', virtual:'bestseller', sort_order:1},
   {id:'burgers', name:'Burgers', style:'grid', sort_order:2},
   {id:'wraps', name:'Wraps', style:'grid', sort_order:3},
   {id:'fries', name:'Fries & Sides', style:'grid', sort_order:4},
@@ -469,18 +469,15 @@ const FALLBACK_CATEGORIES = [
   {id:'deals', name:'Deals', style:'deal', sort_order:7},
 ];
 const FALLBACK_ITEMS = [
-  {id:'the-tangys', category_id:'best', name:"The Tangy's", description:"The double-stack everyone means when they say 'the big one'.", price:750, original_price:null, is_placeholder:true, tag:'Signature', is_signature:true, is_bestseller:true, is_new:false, image_url:null, addons:[{name:'Extra Cheese',price:100},{name:'House Special Sauce',price:80},{name:'Extra Patty',price:200}], sort_order:1},
-  {id:'zest-burger', category_id:'best', name:"Zest Burger", description:"Sharper sauce, same loaded build.", price:480, original_price:null, is_placeholder:true, tag:'Best seller', is_bestseller:true, image_url:null, sort_order:2},
-  {id:'loaded-fries-grill', category_id:'best', name:"Loaded Fries (Grill Piece)", description:"Fries topped with a grill piece and house sauce.", price:350, original_price:null, is_placeholder:true, tag:'Best seller', is_bestseller:true, image_url:null, sort_order:3},
   {id:'grill-burger', category_id:'burgers', name:'Grill Burger', description:'Char-grilled patty, fresh veg, house sauce.', price:450, original_price:null, is_placeholder:true, tag:'Classic', image_url:null, sort_order:1},
-  {id:'zest-burger-2', category_id:'burgers', name:'Zest Burger', description:'The tangy, punchy version.', price:480, original_price:null, is_placeholder:true, tag:'Classic', image_url:null, sort_order:2},
+  {id:'zest-burger', category_id:'burgers', name:'Zest Burger', description:'Sharper sauce, same loaded build.', price:480, original_price:null, is_placeholder:true, tag:'Classic', is_bestseller:true, image_url:null, sort_order:2},
   {id:'fillet-burger', category_id:'burgers', name:'Fillet Burger', description:'Crispy chicken fillet, slaw, mayo.', price:500, original_price:null, is_placeholder:true, tag:'Classic', image_url:null, sort_order:3},
   {id:'jumbo-chilli', category_id:'burgers', name:'Jumbo Chilli Burger', description:'Jumbo patty, chilli-forward sauce.', price:550, original_price:null, is_placeholder:true, tag:'Spiced', is_new:true, image_url:null, sort_order:4},
-  {id:'the-tangys-2', category_id:'burgers', name:"The Tangy's", description:'The signature double-stack.', price:750, original_price:null, is_placeholder:true, tag:'Signature', is_signature:true, image_url:null, sort_order:5},
+  {id:'the-tangys', category_id:'burgers', name:"The Tangy's", description:"The double-stack everyone means when they say 'the big one'.", price:750, original_price:null, is_placeholder:true, tag:'Signature', is_signature:true, is_bestseller:true, is_new:false, image_url:null, addons:[{name:'Extra Cheese',price:100},{name:'House Special Sauce',price:80},{name:'Extra Patty',price:200}], sort_order:5},
   {id:'zest-wrap', category_id:'wraps', name:'Chicken Zest Wrap', description:'Grilled chicken, zest sauce, rolled tight.', price:380, original_price:null, is_placeholder:true, tag:'Wrap', image_url:null, sort_order:1},
   {id:'bbq-wrap', category_id:'wraps', name:'BBQ Grilled Wrap', description:'Smoky BBQ chicken, fresh veg.', price:400, original_price:null, is_placeholder:true, tag:'Wrap', image_url:null, sort_order:2},
   {id:'fillet-wrap', category_id:'wraps', name:'Chicken Fillet Wrap', description:'Crispy fillet strips, sauce, crunch.', price:420, original_price:null, is_placeholder:true, tag:'Wrap', image_url:null, sort_order:3},
-  {id:'loaded-fries-grill-2', category_id:'fries', name:'Loaded Fries (Grill Piece)', description:'Grill piece topped fries with house sauce.', price:350, original_price:null, is_placeholder:true, tag:'Sides', image_url:null, sort_order:1},
+  {id:'loaded-fries-grill', category_id:'fries', name:'Loaded Fries (Grill Piece)', description:'Grill piece topped fries with house sauce.', price:350, original_price:null, is_placeholder:true, tag:'Sides', is_bestseller:true, image_url:null, sort_order:1},
   {id:'loaded-fries-fillet', category_id:'fries', name:'Loaded Fries (Fillet Piece)', description:'Fillet piece topped fries with house sauce.', price:380, original_price:null, is_placeholder:true, tag:'Sides', image_url:null, sort_order:2},
   {id:'garlic-mayo', category_id:'fries', name:'Garlic Mayo', description:'House dip, made for dunking.', price:80, original_price:null, is_placeholder:true, tag:'Dip', image_url:null, sort_order:3},
   {id:'greek-mayo', category_id:'fries', name:'Greek Mayo', description:'House dip, made for dunking.', price:80, original_price:null, is_placeholder:true, tag:'Dip', image_url:null, sort_order:4},
@@ -601,11 +598,19 @@ function renderFoodCard(item){
         <p class="item-desc">${esc(item.description||'')}</p>
         <div class="price-row">${priceBlock(item)}</div>
         <div class="item-action-row" onclick="event.stopPropagation()">
-          <div id="ctrl-${item.id}">${addCartControlMarkup(item.id)}</div>
+          <div class="cart-ctrl" data-ctrl-id="${item.id}">${addCartControlMarkup(item.id)}</div>
           <button class="fav-btn" onclick="toggleFav('${item.id}', this)" aria-label="Save favorite">&#9825;</button>
         </div>
       </div>
     </div>`;
+}
+
+function isVirtualBestseller(cat){
+  return cat.virtual === 'bestseller' || cat.id === 'best';
+}
+function itemsForCategory(cat){
+  const list = isVirtualBestseller(cat) ? allItems.filter(i => i.is_bestseller) : allItems.filter(i => i.category_id === cat.id);
+  return list.slice().sort((a,b) => (a.sort_order||0) - (b.sort_order||0));
 }
 
 function buildMenu(){
@@ -616,7 +621,7 @@ function buildMenu(){
 
   const container = document.getElementById('menuContainer');
   container.innerHTML = categories.map(cat => {
-    const catItems = allItems.filter(i => i.category_id === cat.id);
+    const catItems = itemsForCategory(cat);
     if(cat.style === 'deal'){
       return `
         <section class="cat-section" id="${cat.id}" style="padding-bottom:40px;">
@@ -838,15 +843,16 @@ function refreshCart(){
   });
 
   // Quick-add buttons on cards only reflect the plain (no add-on) line for that item.
+  // An item can render in more than one place now (e.g. Best Sellers + its real category),
+  // so update every matching control on the page, not just the first.
   allItems.forEach(item => {
-    const ctrl = document.getElementById('ctrl-'+item.id);
-    if(!ctrl) return;
+    const ctrls = document.querySelectorAll('.cart-ctrl[data-ctrl-id="'+item.id+'"]');
+    if(!ctrls.length) return;
     const plainLine = cart[item.id];
-    if(plainLine && plainLine.qty > 0){
-      ctrl.innerHTML = `<div class="qty-stepper"><button onclick="event.stopPropagation();decFromCart('${item.id}')">&minus;</button><span>${plainLine.qty}</span><button onclick="event.stopPropagation();addToCart('${item.id}')">+</button></div>`;
-    } else {
-      ctrl.innerHTML = addCartControlMarkup(item.id);
-    }
+    const html = (plainLine && plainLine.qty > 0)
+      ? `<div class="qty-stepper"><button onclick="event.stopPropagation();decFromCart('${item.id}')">&minus;</button><span>${plainLine.qty}</span><button onclick="event.stopPropagation();addToCart('${item.id}')">+</button></div>`
+      : addCartControlMarkup(item.id);
+    ctrls.forEach(ctrl => { ctrl.innerHTML = html; });
   });
 
   const promoAmt = subtotal * (appliedPromoPercent/100);
