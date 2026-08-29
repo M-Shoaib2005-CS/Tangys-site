@@ -3,11 +3,65 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tangy's — Wazirabad</title>
+<title>Tangy's Wazirabad — Loaded Burgers, Wraps &amp; Fries | Order on WhatsApp</title>
+<meta name="description" content="Loaded burgers, wraps, fries and deals from Tangy's at Kechari Chowk, Wazirabad. Order for delivery or pick-up straight through WhatsApp, open 10:30 AM–2:00 AM daily.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://tangys.netlify.app/">
+
+<!-- Open Graph / social share preview (matters a lot here since orders and shares happen over WhatsApp) -->
+<meta property="og:type" content="restaurant.menu">
+<meta property="og:title" content="Tangy's Wazirabad — Loaded Burgers, Wraps &amp; Fries">
+<meta property="og:description" content="Order Tangy's straight from WhatsApp — burgers, wraps, loaded fries and deals, delivered across Wazirabad daily 10:30 AM–2:00 AM.">
+<meta property="og:url" content="https://tangys.netlify.app/">
+<meta property="og:site_name" content="Tangy's">
+<meta property="og:image" content="https://tangys.netlify.app/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:image" content="https://tangys.netlify.app/og-image.jpg">
+<meta property="og:locale" content="en_PK">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Tangy's Wazirabad — Loaded Burgers, Wraps &amp; Fries">
+<meta name="twitter:description" content="Order on WhatsApp — burgers, wraps, loaded fries and deals, delivered across Wazirabad daily 10:30 AM–2:00 AM.">
+
+<meta name="theme-color" content="#E23B23">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23E23B23'/%3E%3Ctext x='50' y='68' font-size='58' font-family='Georgia,serif' font-weight='bold' fill='white' text-anchor='middle'%3ET%3C/text%3E%3C/svg%3E">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Space+Grotesk:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- Structured data: helps Google understand this is a real local restaurant (hours, address, phone) for local search / Maps -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Restaurant",
+  "name": "Tangy's",
+  "servesCuisine": ["Burgers", "Fast Food", "American"],
+  "priceRange": "Rs. 350 - Rs. 2500",
+  "telephone": "+92-318-1450075",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "Opposite Bank Al Habib, Kechari Chowk",
+    "addressLocality": "Wazirabad",
+    "addressCountry": "PK"
+  },
+  "geo": {
+    "@type": "GeoCoordinates",
+    "latitude": 32.438883,
+    "longitude": 74.1161399
+  },
+  "openingHoursSpecification": {
+    "@type": "OpeningHoursSpecification",
+    "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],
+    "opens": "10:30",
+    "closes": "02:00"
+  },
+  "acceptsReservations": "False",
+  "menu": "https://tangys.netlify.app/#menu"
+}
+</script>
+
 <style>
   :root{
     --bg:#FFF9F1; --panel:#FFFFFF; --line:rgba(32,16,8,0.09);
@@ -16,6 +70,7 @@
     --gold:#C9852B; --good:#1E7A46; --good-soft:#E7F5EC;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
   html{scroll-behavior:smooth;}
   body{background:var(--bg);color:var(--ink);font-family:'Space Grotesk',sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;}
   .script{font-family:'Permanent Marker',cursive;}
@@ -275,6 +330,8 @@
 </head>
 <body>
 
+<h1 class="sr-only">Tangy's Wazirabad — Loaded Burgers, Wraps, Fries &amp; Deals, Delivered</h1>
+
 <div class="announce" id="announceBar">Order straight through WhatsApp — no app needed.</div>
 
 <header>
@@ -507,8 +564,8 @@ let sb = null;
 function money(n){ return 'Rs. ' + Math.round(Number(n)).toLocaleString(); }
 function findItem(id){ return allItems.find(i=>String(i.id)===String(id)) || null; }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function photoTag(url, cls){
-  if(url) return `<img src="${url}" alt="" loading="lazy">`;
+function photoTag(url, altText, cls){
+  if(url) return `<img src="${url}" alt="${esc(altText || "Tangy's Wazirabad")}" loading="lazy">`;
   return `<div class="${cls||''}" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;">${PLACEHOLDER_PHOTO_SVG}</div>`;
 }
 
@@ -553,7 +610,7 @@ function buildCarousel(){
   if(!banners.length){ document.getElementById('carousel').style.display='none'; return; }
   track.innerHTML = banners.map(b => `
     <div class="slide">
-      ${photoTag(b.image_url)}
+      ${photoTag(b.image_url, b.title || "Tangy's Wazirabad")}
       <div class="slide-overlay"><div class="slide-copy">
         ${b.badge_text ? `<span class="slide-badge">${esc(b.badge_text)}</span>` : ''}
         <div class="slide-title">${esc(b.title)}</div>
@@ -591,7 +648,7 @@ function addCartControlMarkup(id){ return `<button class="add-cart-btn" onclick=
 function renderFoodCard(item){
   return `
     <div class="item-card" data-name="${esc(item.name).toLowerCase()}" onclick="openDetail('${item.id}')">
-      <div class="item-photo">${ribbon(item)}${photoTag(item.image_url)}</div>
+      <div class="item-photo">${ribbon(item)}${photoTag(item.image_url, item.name + " — Tangy's Wazirabad")}</div>
       <div class="item-body">
         <span class="item-tag">${esc(item.tag||'')}</span>
         <h3>${esc(item.name)}</h3>
@@ -665,7 +722,7 @@ function setupPromo(){
   const dealCat = categories.find(c => c.style === 'deal');
   const dealItem = dealCat ? allItems.find(i => i.category_id === dealCat.id) : null;
   if(!dealItem) return;
-  document.getElementById('promoPhoto').innerHTML = photoTag(dealItem.image_url);
+  document.getElementById('promoPhoto').innerHTML = photoTag(dealItem.image_url, dealItem.name);
   document.getElementById('promoTitle').textContent = dealItem.name;
   const hasSale = dealItem.original_price && Number(dealItem.original_price) > Number(dealItem.price);
   document.getElementById('promoPrice').innerHTML = `<span class="now mono">${money(dealItem.price)}</span>${hasSale?`<span class="was mono">${money(dealItem.original_price)}</span>`:''}`;
@@ -721,7 +778,7 @@ function openDetail(id){
   document.getElementById('detailCard').innerHTML = `
     <div class="detail-photo">
       ${ribbon(item)}
-      ${photoTag(item.image_url)}
+      ${photoTag(item.image_url, item.name + " — Tangy's Wazirabad")}
       <button class="modal-close" onclick="closeDetail()" aria-label="Close">&times;</button>
     </div>
     <div class="detail-scroll">
@@ -872,7 +929,7 @@ function refreshCart(){
     drawerItems.innerHTML = Object.entries(cart).map(([lineKey, line]) => {
       const addonNote = line.addons && line.addons.length ? `<div class="di-addons">+ ${line.addons.map(a=>esc(a.name)).join(', ')}</div>` : '';
       return `<div class="drawer-item">
-        <div class="di-thumb">${photoTag(line.image_url)}</div>
+        <div class="di-thumb">${photoTag(line.image_url, line.name)}</div>
         <div style="flex:1;">
           <div class="di-name">${esc(line.name)}</div>
           ${addonNote}
