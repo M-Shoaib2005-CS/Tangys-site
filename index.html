@@ -696,7 +696,7 @@ function itemsForCategory(cat){
 }
 
 function buildMenu(){
-  document.getElementById('menuNote').innerHTML = 'Prices marked <span style="color:var(--brand)">*</span> are placeholders — confirmed prices update everywhere automatically once added in the website manager.';
+  
 
   const catNav = document.getElementById('catNav');
   catNav.innerHTML = categories.map((c,i) => `<a href="#${c.id}" class="cat-tab ${i===0?'active':''}">${esc(c.name)}</a>`).join('');
