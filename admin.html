@@ -8,15 +8,18 @@
 <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Space+Grotesk:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#FBF6EE; --panel:#FFFFFF; --line:rgba(32,16,8,0.09);
-    --ink:#211208; --muted:#8A7A6C; --muted-soft:#B8AA9C;
-    --brand:#E23B23; --brand-dark:#B92D19; --brand-soft:#FDE7E2;
-    --gold:#C9852B; --gold-soft:#FBF0DE;
+    --bg:#F5F4F1; --panel:#FFFFFF; --line:rgba(20,15,10,0.08);
+    --ink:#18140F; --muted:#7C7468; --muted-soft:#AFA89C;
+    --brand:#E23B23; --brand-dark:#B92D19; --brand-soft:#FDECE9;
+    --gold:#B8791F; --gold-soft:#FBF1DF;
     --good:#1E7A46; --good-soft:#E7F5EC; --bad:#C13324; --bad-soft:#FBEAE7;
-    --shadow-sm:0 1px 2px rgba(32,16,8,0.05);
-    --shadow-md:0 6px 20px rgba(32,16,8,0.07);
-    --shadow-lg:0 16px 40px rgba(32,16,8,0.14);
-    --radius:16px;
+    --sidebar-bg:#17130F; --sidebar-line:rgba(255,255,255,0.08);
+    --sidebar-text:#8A8178; --sidebar-text-active:#FFFFFF;
+    --shadow-sm:0 1px 2px rgba(20,15,10,0.04);
+    --shadow-md:0 4px 16px rgba(20,15,10,0.06);
+    --shadow-lg:0 16px 40px rgba(20,15,10,0.14);
+    --radius:14px;
+    --sidebar-w:232px;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
   html{-webkit-text-size-adjust:100%;}
@@ -24,114 +27,157 @@
   .mono{font-family:'IBM Plex Mono',monospace;}
   button{font-family:inherit;cursor:pointer;}
   input,select,textarea{font-family:inherit;}
-  .wrap{max-width:1040px;margin:0 auto;padding:0 24px;}
-  @media(max-width:640px){.wrap{padding:0 16px;}}
+  .icon{width:17px;height:17px;flex-shrink:0;}
 
   /* ---------- Login ---------- */
-  #loginScreen{min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px;position:relative;overflow:hidden;background:radial-gradient(circle at 20% 15%, rgba(226,59,35,0.07), transparent 45%), radial-gradient(circle at 85% 85%, rgba(201,133,43,0.08), transparent 45%);}
-  .login-card{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:38px 34px;max-width:380px;width:100%;box-shadow:var(--shadow-lg);}
-  .login-card .logo-badge{background:var(--brand);border-radius:12px;padding:9px 16px;display:inline-flex;align-items:center;box-shadow:0 3px 0 var(--brand-dark);margin-bottom:18px;}
+  #loginScreen{min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px;position:relative;overflow:hidden;background:radial-gradient(circle at 20% 15%, rgba(226,59,35,0.06), transparent 45%), radial-gradient(circle at 85% 85%, rgba(184,121,31,0.07), transparent 45%);}
+  .login-card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:38px 34px;max-width:380px;width:100%;box-shadow:var(--shadow-lg);}
+  .login-card .logo-badge{background:var(--brand);border-radius:11px;padding:9px 16px;display:inline-flex;align-items:center;box-shadow:0 3px 0 var(--brand-dark);margin-bottom:18px;}
   .login-card .logo-badge span{font-family:'Permanent Marker',cursive;color:#fff;font-size:1.2rem;line-height:1;}
   .login-card h1{font-size:1.05rem;font-weight:700;color:var(--ink);margin-bottom:4px;}
   .login-card .sub{font-size:0.86rem;color:var(--muted);margin-bottom:26px;}
   .field{margin-bottom:16px;}
-  .field label{display:block;font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--gold);margin-bottom:7px;letter-spacing:0.01em;}
-  .field input,.field select,.field textarea{width:100%;background:var(--bg);border:1.5px solid var(--line);border-radius:11px;padding:13px 14px;color:var(--ink);font-size:0.92rem;transition:border-color .15s ease;min-height:46px;}
+  .field label{display:block;font-family:'IBM Plex Mono',monospace;font-size:0.68rem;color:var(--gold);margin-bottom:7px;letter-spacing:0.02em;text-transform:uppercase;}
+  .field input,.field select,.field textarea{width:100%;background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:12px 13px;color:var(--ink);font-size:0.9rem;transition:border-color .15s ease;min-height:44px;}
   .field textarea{min-height:0;}
   .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--brand);outline:none;}
-  .btn{background:var(--brand);color:#fff;padding:13px 22px;border-radius:12px;font-weight:700;font-size:0.9rem;border:none;box-shadow:0 3px 0 var(--brand-dark);min-height:46px;transition:transform .1s ease,box-shadow .1s ease;}
+  .btn{background:var(--brand);color:#fff;padding:12px 20px;border-radius:10px;font-weight:700;font-size:0.86rem;border:none;box-shadow:0 2px 0 var(--brand-dark);min-height:44px;transition:transform .1s ease,box-shadow .1s ease,filter .1s ease;}
   .btn:hover{filter:brightness(1.05);}
-  .btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--brand-dark);}
-  .btn-ghost{background:var(--panel);border:1.5px solid var(--line);color:var(--ink);padding:11px 18px;border-radius:12px;font-weight:600;font-size:0.86rem;min-height:44px;}
+  .btn:active{transform:translateY(1px);box-shadow:0 1px 0 var(--brand-dark);}
+  .btn-ghost{background:var(--panel);border:1.5px solid var(--line);color:var(--ink);padding:10px 16px;border-radius:10px;font-weight:600;font-size:0.84rem;min-height:42px;}
   .btn-ghost:hover{border-color:var(--muted-soft);}
-  .btn-danger{background:var(--bad-soft);border:1.5px solid rgba(193,51,36,0.2);color:var(--bad);padding:9px 14px;border-radius:10px;font-size:0.8rem;font-weight:700;}
+  .btn-danger{background:var(--bad-soft);border:1px solid rgba(193,51,36,0.18);color:var(--bad);padding:8px 13px;border-radius:9px;font-size:0.78rem;font-weight:700;}
   .btn-danger:hover{background:rgba(193,51,36,0.14);}
-  .btn-small{padding:9px 15px;font-size:0.82rem;min-height:40px;}
+  .btn-small{padding:8px 14px;font-size:0.8rem;min-height:38px;}
   .err{color:var(--bad);font-size:0.84rem;margin-top:14px;min-height:1em;}
 
-  /* ---------- App shell ---------- */
-  #appScreen{display:none;min-height:100vh;min-height:100dvh;}
-  header{position:sticky;top:0;z-index:20;background:rgba(251,246,238,0.94);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
-  header .head-top{display:flex;justify-content:space-between;align-items:center;padding:16px 0;gap:12px;}
-  header .logo-badge{background:var(--brand);border-radius:10px;padding:7px 13px;display:inline-flex;align-items:center;box-shadow:0 3px 0 var(--brand-dark);flex-shrink:0;}
-  header .logo-badge span{font-family:'Permanent Marker',cursive;color:#fff;font-size:1.05rem;line-height:1;}
-  header .brand-sub{color:var(--muted);font-size:0.82rem;margin-left:10px;display:inline-block;}
-  header .head-left{display:flex;align-items:center;min-width:0;}
-  header .head-right{display:flex;align-items:center;gap:12px;flex-shrink:0;}
-  header .who{font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  @media(max-width:560px){header .brand-sub{display:none;} header .who{display:none;}}
+  /* ---------- App shell: sidebar + main ---------- */
+  #appScreen{display:none;}
+  .app-shell{display:flex;min-height:100vh;min-height:100dvh;}
 
-  .tabs{display:flex;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:0;border-top:1px solid var(--line);}
-  .tabs::-webkit-scrollbar{display:none;}
-  .tab-btn{white-space:nowrap;padding:12px 16px;font-size:0.86rem;font-weight:700;color:var(--muted);border-bottom:3px solid transparent;flex-shrink:0;transition:color .15s ease;}
-  .tab-btn.active{color:var(--brand);border-bottom-color:var(--brand);}
-  .tab-btn:hover{color:var(--ink);}
+  .sidebar{
+    width:var(--sidebar-w);flex-shrink:0;background:var(--sidebar-bg);color:var(--sidebar-text);
+    display:flex;flex-direction:column;position:sticky;top:0;height:100dvh;overflow-y:auto;
+  }
+  .sidebar-brand{display:flex;align-items:center;gap:10px;padding:22px 20px 18px;}
+  .sidebar-brand .logo-badge{background:var(--brand);border-radius:9px;padding:6px 11px;display:inline-flex;align-items:center;flex-shrink:0;}
+  .sidebar-brand .logo-badge span{font-family:'Permanent Marker',cursive;color:#fff;font-size:0.98rem;line-height:1;}
+  .sidebar-brand .brand-label{font-size:0.78rem;color:var(--sidebar-text);line-height:1.25;}
+  .sidebar-brand .brand-label b{display:block;color:#fff;font-size:0.86rem;font-weight:700;}
+
+  .sidebar-nav{flex:1;padding:6px 12px;display:flex;flex-direction:column;gap:2px;}
+  .nav-item{
+    display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:9px;
+    color:var(--sidebar-text);font-size:0.86rem;font-weight:600;text-align:left;
+    transition:background .15s ease,color .15s ease;
+  }
+  .nav-item:hover{background:rgba(255,255,255,0.05);color:#fff;}
+  .nav-item.active{background:var(--brand);color:#fff;}
+  .nav-item .icon{opacity:0.9;}
+
+  .sidebar-foot{padding:14px 20px 18px;border-top:1px solid var(--sidebar-line);}
+  .sidebar-foot .who{display:block;font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--sidebar-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:10px;}
+  .sidebar-foot .btn-ghost{width:100%;background:transparent;border-color:var(--sidebar-line);color:var(--sidebar-text);}
+  .sidebar-foot .btn-ghost:hover{border-color:rgba(255,255,255,0.25);color:#fff;}
+
+  .main-content{flex:1;min-width:0;}
+  .content-topbar{position:sticky;top:0;z-index:15;background:rgba(245,244,241,0.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:18px 32px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;}
+  .content-topbar h2{font-size:1.15rem;font-weight:800;}
+  .content-topbar .page-sub{color:var(--muted);font-size:0.82rem;margin-top:2px;}
+
+  main{padding:26px 32px 90px;}
+  .section-help{color:var(--muted);font-size:0.84rem;margin-bottom:22px;max-width:640px;line-height:1.55;}
+
+  /* Mobile top bar + bottom nav (shown only under the breakpoint) */
+  .mobile-topbar{display:none;position:sticky;top:0;z-index:20;background:rgba(245,244,241,0.95);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:14px 16px;align-items:center;justify-content:space-between;}
+  .mobile-topbar .logo-badge{background:var(--brand);border-radius:9px;padding:6px 11px;display:inline-flex;align-items:center;box-shadow:0 2px 0 var(--brand-dark);}
+  .mobile-topbar .logo-badge span{font-family:'Permanent Marker',cursive;color:#fff;font-size:0.95rem;}
+  .mobile-bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:60;background:var(--sidebar-bg);padding:8px 6px calc(6px + env(safe-area-inset-bottom));justify-content:space-around;align-items:center;box-shadow:0 -4px 20px rgba(0,0,0,0.15);}
+  .mobile-nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--sidebar-text);font-size:0.62rem;font-weight:600;padding:6px 10px;border-radius:9px;flex:1;}
+  .mobile-nav-item.active{color:#fff;}
+  .mobile-nav-item.active .icon{color:var(--brand);}
+  .mobile-nav-item .icon{width:20px;height:20px;}
+
+  @media(max-width:900px){
+    .sidebar{display:none;}
+    .mobile-topbar{display:flex;}
+    .mobile-bottom-nav{display:flex;}
+    .main-content{padding-bottom:70px;}
+    .content-topbar{padding:16px;}
+    main{padding:20px 16px 90px;}
+  }
+
   .tab-panel{display:none;}
   .tab-panel.active{display:block;animation:fadeIn .2s ease;}
   @keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
 
-  main{padding:26px 0 100px;}
   .section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px;flex-wrap:wrap;}
-  .section-head h2{font-size:1.2rem;font-weight:800;}
-  .section-help{color:var(--muted);font-size:0.84rem;margin-bottom:20px;max-width:640px;line-height:1.55;}
+  .section-head h2{font-size:1.05rem;font-weight:800;}
 
-  /* ---------- Category / item cards ---------- */
-  .cat-row{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 20px;margin-bottom:12px;box-shadow:var(--shadow-sm);transition:box-shadow .15s ease;}
+  /* ---------- Stat cards ---------- */
+  .stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:26px;}
+  .stat-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow-sm);}
+  .stat-card .stat-num{font-family:'IBM Plex Mono',monospace;font-size:1.5rem;font-weight:600;color:var(--ink);}
+  .stat-card .stat-label{color:var(--muted);font-size:0.76rem;margin-top:3px;}
+  @media(max-width:700px){.stat-row{grid-template-columns:1fr 1fr;}}
+
+  /* ---------- Category / item rows ---------- */
+  .cat-row{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:15px 18px;margin-bottom:10px;box-shadow:var(--shadow-sm);transition:box-shadow .15s ease;}
   .cat-row.open{box-shadow:var(--shadow-md);}
   .cat-row-head{display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:12px;flex-wrap:wrap;}
   .cat-row-head .ct-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0;}
-  .cat-row-head h3{font-size:1rem;font-weight:700;}
-  .style-pill{font-family:'IBM Plex Mono',monospace;font-size:0.64rem;color:var(--gold);background:var(--gold-soft);padding:4px 9px;border-radius:999px;white-space:nowrap;}
-  .count{color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:0.74rem;white-space:nowrap;}
-  .chevron{transition:transform .2s ease;color:var(--muted-soft);flex-shrink:0;}
+  .cat-row-head h3{font-size:0.94rem;font-weight:700;}
+  .style-pill{font-family:'IBM Plex Mono',monospace;font-size:0.62rem;color:var(--gold);background:var(--gold-soft);padding:3px 8px;border-radius:999px;white-space:nowrap;}
+  .count{color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:0.72rem;white-space:nowrap;}
+  .chevron{transition:transform .2s ease;color:var(--muted-soft);flex-shrink:0;font-size:0.8rem;}
   .cat-row.open .chevron{transform:rotate(90deg);color:var(--brand);}
   .cat-actions{display:flex;gap:8px;flex-shrink:0;}
-  .items-list{display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--line);}
+  .items-list{display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--line);}
   .cat-row.open .items-list{display:block;}
 
-  .item-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);flex-wrap:wrap;}
+  .item-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);flex-wrap:wrap;}
   .item-row:last-child{border-bottom:none;}
-  .item-thumb{width:46px;height:46px;border-radius:10px;background:linear-gradient(135deg,#F3E7D8,#FCEFE0);overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0;}
+  .item-thumb{width:40px;height:40px;border-radius:9px;background:linear-gradient(135deg,#EFE9DE,#F8F3E9);overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0;}
   .item-thumb img{width:100%;height:100%;object-fit:cover;}
   .item-row .it-info{flex:1;min-width:120px;}
-  .it-name{font-weight:700;font-size:0.9rem;}
-  .it-meta{color:var(--muted);font-size:0.76rem;margin-top:2px;}
-  .it-price{font-family:'IBM Plex Mono',monospace;color:var(--brand);font-size:0.86rem;white-space:nowrap;font-weight:600;}
-  .it-price .was{color:var(--muted-soft);text-decoration:line-through;font-size:0.72rem;margin-left:5px;font-weight:400;}
+  .it-name{font-weight:700;font-size:0.87rem;}
+  .it-meta{color:var(--muted);font-size:0.74rem;margin-top:2px;}
+  .it-price{font-family:'IBM Plex Mono',monospace;color:var(--ink);font-size:0.84rem;white-space:nowrap;font-weight:600;}
+  .it-price .was{color:var(--muted-soft);text-decoration:line-through;font-size:0.7rem;margin-left:5px;font-weight:400;}
   .it-actions{display:flex;gap:8px;flex-shrink:0;margin-left:auto;}
   @media(max-width:520px){
     .item-row{position:relative;padding-right:0;}
-    .it-price{order:3;margin-left:60px;}
-    .it-actions{order:4;margin-left:60px;width:100%;margin-top:2px;}
+    .it-price{order:3;margin-left:52px;}
+    .it-actions{order:4;margin-left:52px;width:100%;margin-top:2px;}
   }
 
-  .add-item-btn{margin-top:14px;width:100%;background:var(--bg);border:1.5px dashed rgba(226,59,35,0.35);color:var(--brand);padding:13px;border-radius:12px;font-size:0.86rem;font-weight:700;min-height:46px;}
+  .add-item-btn{margin-top:12px;width:100%;background:var(--bg);border:1.5px dashed rgba(226,59,35,0.3);color:var(--brand);padding:12px;border-radius:10px;font-size:0.84rem;font-weight:700;min-height:44px;}
   .add-item-btn:hover{border-color:var(--brand);background:var(--brand-soft);}
-  .add-cat-btn{background:var(--panel);border:1.5px dashed rgba(226,59,35,0.35);color:var(--brand);padding:18px;border-radius:var(--radius);font-size:0.9rem;font-weight:700;width:100%;min-height:56px;}
+  .add-cat-btn{background:var(--panel);border:1.5px dashed rgba(226,59,35,0.3);color:var(--brand);padding:16px;border-radius:var(--radius);font-size:0.88rem;font-weight:700;width:100%;min-height:52px;}
   .add-cat-btn:hover{border-color:var(--brand);background:var(--brand-soft);}
 
-  .banner-row{display:flex;gap:14px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 18px;margin-bottom:12px;box-shadow:var(--shadow-sm);flex-wrap:wrap;}
-  .banner-thumb{width:84px;height:56px;border-radius:10px;background:linear-gradient(135deg,#F3E7D8,#FCEFE0);overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0;}
+  .banner-row{display:flex;gap:14px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:13px 16px;margin-bottom:10px;box-shadow:var(--shadow-sm);flex-wrap:wrap;}
+  .banner-thumb{width:80px;height:52px;border-radius:9px;background:linear-gradient(135deg,#EFE9DE,#F8F3E9);overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0;}
   .banner-thumb img{width:100%;height:100%;object-fit:cover;}
   .banner-row .bn-info{flex:1;min-width:150px;}
-  .bn-title{font-weight:700;font-size:0.92rem;}
-  .bn-sub{color:var(--muted);font-size:0.78rem;margin-top:2px;}
+  .bn-title{font-weight:700;font-size:0.88rem;}
+  .bn-sub{color:var(--muted);font-size:0.76rem;margin-top:2px;}
   .banner-row .it-actions{margin-left:auto;}
 
-  .settings-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:26px;max-width:480px;box-shadow:var(--shadow-sm);}
+  .settings-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:24px;max-width:480px;box-shadow:var(--shadow-sm);}
   .settings-card .field:last-of-type{margin-bottom:0;}
-  .settings-hint{color:var(--muted);font-size:0.76rem;margin-top:-11px;margin-bottom:16px;line-height:1.5;}
+  .settings-hint{color:var(--muted);font-size:0.75rem;margin-top:-11px;margin-bottom:16px;line-height:1.5;}
 
   /* ---------- Modals — centered dialog on desktop, bottom sheet on mobile ---------- */
-  .modal-overlay{position:fixed;inset:0;background:rgba(20,10,4,0.45);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s ease;}
+  .modal-overlay{position:fixed;inset:0;background:rgba(15,12,8,0.45);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s ease;}
   .modal-overlay.show{opacity:1;pointer-events:auto;}
-  .modal-card{background:var(--panel);border-radius:20px;padding:26px;max-width:460px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:var(--shadow-lg);transform:translateY(14px);transition:transform .22s cubic-bezier(.32,.72,0,1);}
+  .modal-card{background:var(--panel);border-radius:18px;padding:24px;max-width:460px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:var(--shadow-lg);transform:translateY(14px);transition:transform .22s cubic-bezier(.32,.72,0,1);}
   .modal-overlay.show .modal-card{transform:translateY(0);}
-  .modal-card h3{font-size:1.05rem;font-weight:800;margin-bottom:18px;}
+  .modal-card h3{font-size:1rem;font-weight:800;margin-bottom:18px;}
   .checkbox-row{display:flex;align-items:center;gap:9px;margin-bottom:13px;}
-  .checkbox-row input{width:18px;height:18px;accent-color:var(--brand);flex-shrink:0;}
-  .checkbox-row label{font-size:0.85rem;color:var(--ink);}
-  .modal-foot{display:flex;gap:10px;margin-top:8px;position:sticky;bottom:-26px;background:var(--panel);padding-top:6px;}
+  .checkbox-row input{width:17px;height:17px;accent-color:var(--brand);flex-shrink:0;}
+  .checkbox-row label{font-size:0.84rem;color:var(--ink);}
+  .modal-foot{display:flex;gap:10px;margin-top:8px;position:sticky;bottom:-24px;background:var(--panel);padding-top:6px;}
   .modal-foot .btn{flex:1;}
   .modal-foot .btn-ghost{flex:1;}
   .price-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
@@ -141,9 +187,9 @@
 
   @media(max-width:640px){
     .modal-overlay{align-items:flex-end;padding:0;}
-    .modal-card{max-width:100%;width:100%;border-radius:20px 20px 0 0;max-height:92vh;padding:24px 20px calc(20px + env(safe-area-inset-bottom));transform:translateY(100%);}
+    .modal-card{max-width:100%;width:100%;border-radius:20px 20px 0 0;max-height:92vh;padding:22px 18px calc(18px + env(safe-area-inset-bottom));transform:translateY(100%);}
     .modal-overlay.show .modal-card{transform:translateY(0);}
-    .modal-foot{bottom:-24px;padding-bottom:2px;}
+    .modal-foot{bottom:-22px;padding-bottom:2px;}
     .price-row{grid-template-columns:1fr 1fr;}
     .addon-edit-row{grid-template-columns:1fr 74px 32px;}
   }
@@ -151,18 +197,18 @@
   /* ---------- Discounts tab ---------- */
   .discount-controls{display:grid;grid-template-columns:220px 1fr;gap:20px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin-bottom:16px;align-items:end;box-shadow:var(--shadow-sm);}
   .discount-controls .field{margin-bottom:0;}
-  .discount-controls select{width:100%;background:var(--bg);border:1.5px solid var(--line);border-radius:11px;padding:12px 13px;font-size:0.88rem;min-height:46px;}
+  .discount-controls select{width:100%;background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:11px 13px;font-size:0.86rem;min-height:44px;}
   .discount-presets{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-  .preset-btn{border:1.5px solid var(--line);border-radius:10px;padding:11px 16px;font-size:0.85rem;font-weight:700;color:var(--ink);background:var(--panel);min-height:44px;}
+  .preset-btn{border:1.5px solid var(--line);border-radius:9px;padding:10px 15px;font-size:0.84rem;font-weight:700;color:var(--ink);background:var(--panel);min-height:42px;}
   .preset-btn.active{background:var(--brand);color:#fff;border-color:var(--brand);}
-  .discount-presets input{background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:11px 13px;font-size:0.85rem;min-height:44px;}
-  .discount-select-all{margin-bottom:10px;font-size:0.86rem;font-weight:600;display:flex;align-items:center;gap:8px;}
-  .discount-select-all input{width:17px;height:17px;accent-color:var(--brand);}
-  .discount-item-row{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 14px;margin-bottom:8px;flex-wrap:wrap;box-shadow:var(--shadow-sm);}
-  .discount-item-row input[type=checkbox]{width:18px;height:18px;accent-color:var(--brand);flex-shrink:0;}
+  .discount-presets input{background:var(--bg);border:1.5px solid var(--line);border-radius:9px;padding:10px 13px;font-size:0.84rem;min-height:42px;}
+  .discount-select-all{margin-bottom:10px;font-size:0.84rem;font-weight:600;display:flex;align-items:center;gap:8px;}
+  .discount-select-all input{width:16px;height:16px;accent-color:var(--brand);}
+  .discount-item-row{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:10px 13px;margin-bottom:8px;flex-wrap:wrap;box-shadow:var(--shadow-sm);}
+  .discount-item-row input[type=checkbox]{width:17px;height:17px;accent-color:var(--brand);flex-shrink:0;}
   .discount-item-row .it-info{flex:1;min-width:120px;}
-  .discount-cat-label{font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--gold);text-transform:uppercase;margin:18px 0 8px;letter-spacing:0.03em;}
-  .discount-sale-badge{font-size:0.7rem;font-weight:700;color:var(--good);background:var(--good-soft);padding:4px 9px;border-radius:999px;white-space:nowrap;}
+  .discount-cat-label{font-family:'IBM Plex Mono',monospace;font-size:0.68rem;color:var(--gold);text-transform:uppercase;margin:16px 0 8px;letter-spacing:0.03em;}
+  .discount-sale-badge{font-size:0.68rem;font-weight:700;color:var(--good);background:var(--good-soft);padding:4px 9px;border-radius:999px;white-space:nowrap;}
   .discount-actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;}
   .discount-actions .btn, .discount-actions .btn-ghost{flex:0 0 auto;}
   @media(max-width:640px){
@@ -172,17 +218,17 @@
 
   /* ---------- Photo upload ---------- */
   .upload-row{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
-  .upload-preview{width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,#F3E7D8,#FCEFE0);overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0;font-size:1.3rem;}
+  .upload-preview{width:60px;height:60px;border-radius:11px;background:linear-gradient(135deg,#EFE9DE,#F8F3E9);overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0;font-size:1.2rem;}
   .upload-preview img{width:100%;height:100%;object-fit:cover;}
-  .upload-btn{background:var(--bg);border:1.5px dashed rgba(226,59,35,0.4);color:var(--brand);padding:12px 14px;border-radius:10px;font-size:0.82rem;font-weight:700;flex:1;text-align:center;min-height:44px;}
+  .upload-btn{background:var(--bg);border:1.5px dashed rgba(226,59,35,0.35);color:var(--brand);padding:11px 14px;border-radius:9px;font-size:0.8rem;font-weight:700;flex:1;text-align:center;min-height:42px;}
   .upload-btn:hover{border-color:var(--brand);background:var(--brand-soft);}
-  .upload-status{font-size:0.76rem;color:var(--muted);margin-top:5px;}
+  .upload-status{font-size:0.74rem;color:var(--muted);margin-top:5px;}
 
-  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--good);color:#fff;padding:13px 24px;border-radius:12px;font-weight:700;font-size:0.86rem;z-index:99;opacity:0;pointer-events:none;transition:opacity .2s ease, transform .2s ease;box-shadow:var(--shadow-lg);white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis;}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--good);color:#fff;padding:12px 22px;border-radius:11px;font-weight:700;font-size:0.84rem;z-index:99;opacity:0;pointer-events:none;transition:opacity .2s ease, transform .2s ease;box-shadow:var(--shadow-lg);white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis;}
   .toast.show{opacity:1;transform:translate(-50%,-4px);}
   .toast.err{background:var(--bad);}
 
-  .empty-state{color:var(--muted);font-size:0.86rem;text-align:center;padding:30px 0;}
+  .empty-state{color:var(--muted);font-size:0.84rem;text-align:center;padding:26px 0;}
 </style>
 </head>
 <body>
@@ -200,40 +246,64 @@
 </div>
 
 <div id="appScreen">
-  <header>
-    <div class="wrap head-top">
-      <div class="head-left">
-        <div class="logo-badge"><span>Tangy&#8217;s</span></div>
-        <span class="brand-sub">Website Manager</span>
-      </div>
-      <div class="head-right">
-        <span class="who mono" id="whoEmail"></span>
-        <button class="btn-ghost btn-small" onclick="doLogout()">Sign out</button>
-      </div>
-    </div>
-    <div class="wrap tabs">
-      <button class="tab-btn active" data-tab="menu" onclick="switchTab('menu')">Menu</button>
-      <button class="tab-btn" data-tab="discounts" onclick="switchTab('discounts')">Discounts</button>
-      <button class="tab-btn" data-tab="banners" onclick="switchTab('banners')">Homepage Banners</button>
-      <button class="tab-btn" data-tab="settings" onclick="switchTab('settings')">Site Settings</button>
-    </div>
-  </header>
 
-  <main>
-    <div class="wrap">
+<!-- Mobile top bar (sits above the flex row, full width) -->
+<div class="mobile-topbar">
+  <div class="logo-badge"><span>Tangy&#8217;s</span></div>
+  <button class="btn-ghost btn-small" onclick="doLogout()">Sign out</button>
+</div>
+
+<div class="app-shell">
+
+  <!-- Desktop sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo-badge"><span>Tangy&#8217;s</span></div>
+      <div class="brand-label"><b>Website Manager</b>Dashboard</div>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-tab="menu" onclick="switchTab('menu')">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        Menu
+      </button>
+      <button class="nav-item" data-tab="discounts" onclick="switchTab('discounts')">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.59 2.59a2 2 0 0 0-1.42-.59H4a2 2 0 0 0-2 2v7.17a2 2 0 0 0 .59 1.41l8.83 8.83a2 2 0 0 0 2.82 0l6.83-6.83a2 2 0 0 0 0-2.82l-8.46-8.17z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
+        Discounts
+      </button>
+      <button class="nav-item" data-tab="banners" onclick="switchTab('banners')">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2.5"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        Homepage Banners
+      </button>
+      <button class="nav-item" data-tab="settings" onclick="switchTab('settings')">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+        Site Settings
+      </button>
+    </nav>
+    <div class="sidebar-foot">
+      <span class="who mono" id="whoEmail"></span>
+      <button class="btn-ghost btn-small" onclick="doLogout()">Sign out</button>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <div class="content-topbar">
+      <div>
+        <h2 id="pageTitle">Menu</h2>
+        <div class="page-sub" id="pageSub">Categories and items customers see on the site</div>
+      </div>
+      <button class="btn btn-small" id="topbarAction" onclick="openCatModal()">+ New category</button>
+    </div>
+
+    <main>
 
       <div class="tab-panel active" id="tab-menu">
-        <div class="section-head">
-          <h2>Menu categories &amp; items</h2>
-          <button class="btn btn-small" onclick="openCatModal()">+ New category</button>
-        </div>
+        <div class="stat-row" id="statRow"></div>
         <p class="section-help">Categories are the sections customers see on the site (Burgers, Wraps, Deals...). Click a category to open it and manage its items.</p>
         <div id="catList"></div>
         <div id="emptyState" class="empty-state" style="display:none;">No categories yet — add your first one above.</div>
       </div>
 
       <div class="tab-panel" id="tab-discounts">
-        <div class="section-head"><h2>Discounts</h2></div>
         <p class="section-help">Put a whole category on sale at once, or pick specific items. This sets each item's "was" price automatically — the site shows the strikethrough and % off badge on its own.</p>
 
         <div class="discount-controls">
@@ -267,17 +337,12 @@
       </div>
 
       <div class="tab-panel" id="tab-banners">
-        <div class="section-head">
-          <h2>Homepage banners</h2>
-          <button class="btn btn-small" onclick="openBannerModal()">+ New banner</button>
-        </div>
         <p class="section-help">These are the rotating photos at the top of the site — good for calling out a deal, a new item, or just showing off the place. Aim for wide photos, roughly 1600&times;800px.</p>
         <div id="bannerList"></div>
         <div id="bannerEmptyState" class="empty-state" style="display:none;">No banners yet — add one above.</div>
       </div>
 
       <div class="tab-panel" id="tab-settings">
-        <div class="section-head"><h2>Site settings</h2></div>
         <p class="section-help">A few site-wide things that don't belong to any one item.</p>
         <div class="settings-card">
           <div class="field">
@@ -312,9 +377,31 @@
         </div>
       </div>
 
-    </div>
-  </main>
+    </main>
+  </div>
 </div>
+
+<!-- Mobile bottom nav -->
+<div class="mobile-bottom-nav">
+  <button class="mobile-nav-item active" data-tab="menu" onclick="switchTab('menu')">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+    Menu
+  </button>
+  <button class="mobile-nav-item" data-tab="discounts" onclick="switchTab('discounts')">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.59 2.59a2 2 0 0 0-1.42-.59H4a2 2 0 0 0-2 2v7.17a2 2 0 0 0 .59 1.41l8.83 8.83a2 2 0 0 0 2.82 0l6.83-6.83a2 2 0 0 0 0-2.82l-8.46-8.17z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
+    Discounts
+  </button>
+  <button class="mobile-nav-item" data-tab="banners" onclick="switchTab('banners')">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2.5"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+    Banners
+  </button>
+  <button class="mobile-nav-item" data-tab="settings" onclick="switchTab('settings')">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+    Settings
+  </button>
+</div>
+
+</div><!-- /#appScreen -->
 
 <!-- Category modal -->
 <div class="modal-overlay" id="catModalOverlay">
@@ -427,9 +514,29 @@ function showToast(msg, isErr){
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 // ---------- Tabs ----------
+const TAB_META = {
+  menu:      { title: 'Menu', sub: 'Categories and items customers see on the site', action: { label: '+ New category', onClick: 'openCatModal()' } },
+  discounts: { title: 'Discounts', sub: 'Put items or whole categories on sale', action: null },
+  banners:   { title: 'Homepage Banners', sub: 'The rotating photos at the top of the site', action: { label: '+ New banner', onClick: 'openBannerModal()' } },
+  settings:  { title: 'Site Settings', sub: 'Announcement bar, tax, promo code, WhatsApp number', action: null },
+};
+
 function switchTab(name){
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  document.querySelectorAll('.mobile-nav-item').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active', p.id==='tab-'+name));
+
+  const meta = TAB_META[name];
+  document.getElementById('pageTitle').textContent = meta.title;
+  document.getElementById('pageSub').textContent = meta.sub;
+  const actionBtn = document.getElementById('topbarAction');
+  if(meta.action){
+    actionBtn.style.display = '';
+    actionBtn.textContent = meta.action.label;
+    actionBtn.setAttribute('onclick', meta.action.onClick);
+  } else {
+    actionBtn.style.display = 'none';
+  }
 }
 
 // ---------- Auth ----------
@@ -471,10 +578,32 @@ async function loadData(){
   banners = bnrs || [];
   settings = sett || { id:'main', announcement_text:'', tax_rate:0, promo_code:'', promo_discount_percent:0, whatsapp_number:'923181450075' };
   renderCategories();
+  renderStats();
   renderBanners();
   renderSettings();
   populateDiscountCategorySelect();
   renderDiscountItems();
+}
+
+function renderStats(){
+  const row = document.getElementById('statRow');
+  if(!row) return;
+  const totalItems = items.length;
+  const totalCats = categories.length;
+  const onSale = items.filter(i => i.original_price && Number(i.original_price) > Number(i.price)).length;
+  const placeholders = items.filter(i => i.is_placeholder).length;
+  const stats = [
+    { num: totalItems, label: 'Menu items' },
+    { num: totalCats, label: 'Categories' },
+    { num: onSale, label: 'On sale' },
+    { num: placeholders, label: 'Placeholder prices' },
+  ];
+  row.innerHTML = stats.map(s => `
+    <div class="stat-card">
+      <div class="stat-num mono">${s.num}</div>
+      <div class="stat-label">${s.label}</div>
+    </div>
+  `).join('');
 }
 
 // ---------- Categories & items ----------
