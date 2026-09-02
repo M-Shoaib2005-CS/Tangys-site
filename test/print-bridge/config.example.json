@@ -1,0 +1,6 @@
+{
+  "port": 9100,
+  "printerType": "EPSON",
+  "interface": "printer:POS-80",
+  "receiptWidth": 32
+}

@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tangy's — Order Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Space+Grotesk:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FBF6EE; --panel:#FFFFFF; --line:rgba(32,16,8,0.09);
+    --ink:#211208; --muted:#8A7A6C; --muted-soft:#B8AA9C;
+    --brand:#E23B23; --brand-dark:#B92D19; --brand-soft:#FDE7E2;
+    --gold:#C9852B; --gold-soft:#FBF0DE;
+    --good:#1E7A46; --good-soft:#E7F5EC; --bad:#C13324; --bad-soft:#FBEAE7;
+    --info:#2461B0; --info-soft:#E6F0FB;
+    --shadow-sm:0 1px 2px rgba(32,16,8,0.05);
+    --shadow-md:0 6px 20px rgba(32,16,8,0.07);
+    --shadow-lg:0 16px 40px rgba(32,16,8,0.14);
+    --radius:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Space Grotesk',sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  button{font-family:inherit;cursor:pointer;}
+  input,select{font-family:inherit;}
+  .wrap{max-width:1280px;margin:0 auto;padding:0 20px;}
+
+  #loginScreen{min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .login-card{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:38px 34px;max-width:380px;width:100%;box-shadow:var(--shadow-lg);}
+  .logo-badge{background:var(--brand);border-radius:10px;padding:9px 16px;display:inline-flex;align-items:center;box-shadow:0 3px 0 var(--brand-dark);margin-bottom:18px;}
+  .logo-badge span{font-family:'Permanent Marker',cursive;color:#fff;font-size:1.2rem;line-height:1;}
+  .login-card h1{font-size:1.05rem;font-weight:700;margin-bottom:4px;}
+  .login-card .sub{font-size:0.86rem;color:var(--muted);margin-bottom:26px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--gold);margin-bottom:7px;}
+  .field input,.field select{width:100%;background:var(--bg);border:1.5px solid var(--line);border-radius:11px;padding:13px 14px;font-size:0.92rem;min-height:46px;}
+  .field input:focus,.field select:focus{border-color:var(--brand);outline:none;}
+  .btn{background:var(--brand);color:#fff;padding:13px 22px;border-radius:12px;font-weight:700;font-size:0.9rem;border:none;box-shadow:0 3px 0 var(--brand-dark);min-height:46px;}
+  .btn-ghost{background:var(--panel);border:1.5px solid var(--line);color:var(--ink);padding:10px 16px;border-radius:11px;font-weight:600;font-size:0.84rem;min-height:42px;}
+  .btn-small{padding:8px 12px;font-size:0.76rem;min-height:34px;border-radius:9px;}
+  .err{color:var(--bad);font-size:0.84rem;margin-top:14px;min-height:1em;}
+
+  #appScreen{display:none;}
+  header{position:sticky;top:0;z-index:20;background:rgba(251,246,238,0.96);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
+  header .head-top{display:flex;justify-content:space-between;align-items:center;padding:14px 0;gap:12px;flex-wrap:wrap;}
+  header .head-left{display:flex;align-items:center;gap:12px;}
+  header .head-right{display:flex;align-items:center;gap:10px;}
+  .who{font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:var(--muted);}
+  .live-dot{width:8px;height:8px;border-radius:50%;background:var(--good);animation:pulse 1.6s ease infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.35;}}
+  .tabs{display:flex;gap:4px;border-top:1px solid var(--line);}
+  .tab-btn{padding:12px 16px;font-size:0.86rem;font-weight:700;color:var(--muted);border-bottom:3px solid transparent;}
+  .tab-btn.active{color:var(--brand);border-bottom-color:var(--brand);}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  main{padding:22px 0 80px;}
+
+  /* Kanban */
+  .board{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;align-items:start;}
+  @media(max-width:1100px){.board{grid-template-columns:repeat(3,1fr);}}
+  @media(max-width:720px){.board{grid-template-columns:1fr;}}
+  .col{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px;min-height:120px;}
+  .col-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding:0 4px;}
+  .col-head h3{font-size:0.86rem;font-weight:800;}
+  .col-count{font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--muted);background:var(--bg);padding:3px 8px;border-radius:999px;}
+  .order-card{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;box-shadow:var(--shadow-sm);}
+  .oc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+  .oc-num{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:0.86rem;}
+  .oc-badges{display:flex;gap:5px;}
+  .badge{font-size:0.62rem;font-weight:700;padding:3px 7px;border-radius:999px;text-transform:uppercase;letter-spacing:0.02em;}
+  .badge-type{background:var(--gold-soft);color:var(--gold);}
+  .badge-src{background:var(--info-soft);color:var(--info);}
+  .oc-items{font-size:0.8rem;color:var(--ink);margin-bottom:6px;line-height:1.5;}
+  .oc-cust{font-size:0.76rem;color:var(--muted);margin-bottom:6px;}
+  .oc-pay{display:flex;align-items:center;justify-content:space-between;font-size:0.76rem;margin-bottom:8px;}
+  .pay-tag{font-weight:700;text-transform:uppercase;font-size:0.68rem;}
+  .pay-tag.confirmed{color:var(--good);}
+  .pay-tag.pending{color:var(--bad);}
+  .oc-total{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:0.88rem;margin-bottom:8px;}
+  .rider-select{width:100%;background:var(--panel);border:1.5px solid var(--line);border-radius:8px;padding:6px 8px;font-size:0.76rem;margin-bottom:8px;}
+  .oc-actions{display:flex;gap:6px;flex-wrap:wrap;}
+  .oc-actions button{flex:1;}
+  .empty-col{color:var(--muted-soft);font-size:0.78rem;text-align:center;padding:14px 4px;}
+
+  /* Reports */
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:24px;}
+  .stat-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow-sm);}
+  .stat-card .label{font-size:0.76rem;color:var(--muted);margin-bottom:6px;}
+  .stat-card .value{font-size:1.5rem;font-weight:800;font-family:'IBM Plex Mono',monospace;}
+  .report-table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;}
+  .report-table th,.report-table td{text-align:left;padding:12px 16px;font-size:0.86rem;border-bottom:1px solid var(--line);}
+  .report-table th{color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.03em;font-weight:700;}
+  .report-table tr:last-child td{border-bottom:none;}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--good);color:#fff;padding:13px 24px;border-radius:12px;font-weight:700;font-size:0.86rem;z-index:99;opacity:0;pointer-events:none;transition:opacity .2s ease;box-shadow:var(--shadow-lg);max-width:90vw;}
+  .toast.show{opacity:1;}
+  .toast.err{background:var(--bad);}
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="logo-badge"><span>Tangy&#8217;s</span></div>
+    <h1>Order Dashboard</h1>
+    <p class="sub">Sign in to view live orders and reports.</p>
+    <div class="field"><label>Email</label><input type="email" id="loginEmail" autocomplete="username"></div>
+    <div class="field"><label>Password</label><input type="password" id="loginPass" autocomplete="current-password"></div>
+    <button class="btn" style="width:100%;" onclick="doLogin()">Sign in</button>
+    <div class="err" id="loginErr"></div>
+  </div>
+</div>
+
+<div id="appScreen">
+  <header>
+    <div class="wrap head-top">
+      <div class="head-left">
+        <div class="logo-badge"><span>Tangy&#8217;s</span></div>
+        <span class="live-dot"></span>
+        <span class="who mono">live</span>
+      </div>
+      <div class="head-right">
+        <span class="who mono" id="whoEmail"></span>
+        <button class="btn-ghost" onclick="doLogout()">Sign out</button>
+      </div>
+    </div>
+    <div class="wrap tabs">
+      <button class="tab-btn active" data-tab="orders" onclick="switchTab('orders')">Live orders</button>
+      <button class="tab-btn" data-tab="reports" onclick="switchTab('reports')">Reports</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="tab-panel active" id="tab-orders">
+      <div class="board" id="board"></div>
+    </div>
+
+    <div class="tab-panel" id="tab-reports">
+      <div class="stat-grid" id="statGrid"></div>
+      <h3 style="font-size:1rem;font-weight:800;margin-bottom:12px;">Best sellers today</h3>
+      <table class="report-table">
+        <thead><tr><th>Item</th><th>Qty sold</th><th>Revenue</th></tr></thead>
+        <tbody id="bestSellersBody"></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ====== Same Supabase project as the website / manager panel / POS ======
+const SUPABASE_URL = 'https://sfsggkofnadleawlelih.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmc2dna29mbmFkbGVhd2xlbGloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3MzUxNTgsImV4cCI6MjEwMzMxMTE1OH0.3Bhdhp1QMbB9iJIben36y9DNxyaxgAlSssongOQJ7Qs';
+// ====================================================================
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const STATUS_COLUMNS = [
+  { key: 'pending', label: 'Pending' },
+  { key: 'preparing', label: 'Preparing' },
+  { key: 'ready', label: 'Ready' },
+  { key: 'out_for_delivery', label: 'Out for delivery' },
+  { key: 'completed', label: 'Completed' }
+];
+const NEXT_STATUS = {
+  pending: 'preparing',
+  preparing: 'ready',
+  ready: null, // ready -> completed (pickup/dine-in) or out_for_delivery (delivery), handled specially
+  out_for_delivery: 'completed'
+};
+
+let orders = [];
+let orderItemsByOrder = {};
+let riders = [];
+let realtimeChannel = null;
+
+function showToast(msg, isErr){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isErr ? ' err' : '');
+  setTimeout(()=>t.classList.remove('show'), 2400);
+}
+function money(n){ return 'Rs. ' + Math.round(Number(n)||0).toLocaleString(); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// ---------- Tabs ----------
+function switchTab(name){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active', p.id==='tab-'+name));
+  if(name==='reports') loadReports();
+}
+
+// ---------- Auth ----------
+async function doLogin(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginErr');
+  errEl.textContent = '';
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if(error){ errEl.textContent = 'Sign-in failed: ' + error.message; return; }
+  showApp(data.user);
+}
+async function doLogout(){
+  if(realtimeChannel) sb.removeChannel(realtimeChannel);
+  await sb.auth.signOut();
+  document.getElementById('appScreen').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+function showApp(user){
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'block';
+  document.getElementById('whoEmail').textContent = user.email;
+  boot();
+}
+(async function checkSession(){
+  const { data } = await sb.auth.getSession();
+  if(data.session){ showApp(data.session.user); }
+})();
+
+// ---------- Boot ----------
+async function boot(){
+  await loadRiders();
+  await loadActiveOrders();
+  renderBoard();
+  subscribeRealtime();
+}
+
+async function loadRiders(){
+  const { data } = await sb.from('riders').select('*').eq('active', true).order('name');
+  riders = data || [];
+}
+
+// Active board only shows orders from the last 24h that aren't cancelled,
+// so the board doesn't grow forever through a long shift.
+async function loadActiveOrders(){
+  const since = new Date(Date.now() - 24*60*60*1000).toISOString();
+  const { data: ords, error } = await sb.from('orders').select('*').gte('created_at', since).neq('status', 'cancelled').order('created_at', { ascending: true });
+  if(error){ showToast('Could not load orders: ' + error.message, true); return; }
+  orders = ords || [];
+  const ids = orders.map(o => o.id);
+  orderItemsByOrder = {};
+  if(ids.length){
+    const { data: items } = await sb.from('order_items').select('*').in('order_id', ids);
+    (items || []).forEach(it => {
+      (orderItemsByOrder[it.order_id] = orderItemsByOrder[it.order_id] || []).push(it);
+    });
+  }
+}
+
+function subscribeRealtime(){
+  realtimeChannel = sb.channel('orders-live')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+      loadActiveOrders().then(renderBoard);
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
+      loadActiveOrders().then(renderBoard);
+    })
+    .subscribe();
+}
+
+// ---------- Board ----------
+function riderOptionsHtml(selectedId){
+  return '<option value="">Assign rider…</option>' +
+    riders.map(r => `<option value="${r.id}" ${r.id===selectedId?'selected':''}>${esc(r.name)}</option>`).join('');
+}
+
+function orderCardHtml(o){
+  const items = orderItemsByOrder[o.id] || [];
+  const itemsHtml = items.map(it => `${it.quantity}x ${esc(it.item_name)}`).join(', ');
+  const custBits = [];
+  if(o.customer_name) custBits.push(esc(o.customer_name));
+  if(o.customer_phone) custBits.push(esc(o.customer_phone));
+  if(o.order_type==='delivery' && o.delivery_address) custBits.push(esc(o.delivery_address));
+
+  let actionsHtml = '';
+  if(o.status === 'pending'){
+    actionsHtml = `<button class="btn-ghost btn-small" onclick="advance('${o.id}','preparing')">Start preparing</button>
+                    <button class="btn-ghost btn-small" onclick="cancelOrder('${o.id}')">Cancel</button>`;
+  }else if(o.status === 'preparing'){
+    actionsHtml = `<button class="btn-ghost btn-small" onclick="advance('${o.id}','ready')">Mark ready</button>`;
+  }else if(o.status === 'ready'){
+    actionsHtml = o.order_type === 'delivery'
+      ? `<button class="btn-ghost btn-small" onclick="advance('${o.id}','out_for_delivery')">Send with rider</button>`
+      : `<button class="btn-ghost btn-small" onclick="advance('${o.id}','completed')">Mark completed</button>`;
+  }else if(o.status === 'out_for_delivery'){
+    actionsHtml = `<button class="btn-ghost btn-small" onclick="advance('${o.id}','completed')">Mark delivered</button>`;
+  }
+
+  const riderRow = o.order_type === 'delivery'
+    ? `<select class="rider-select" onchange="assignRider('${o.id}', this.value)">${riderOptionsHtml(o.rider_id)}</select>`
+    : '';
+
+  return `
+    <div class="order-card">
+      <div class="oc-top">
+        <span class="oc-num">#${o.order_number}</span>
+        <div class="oc-badges">
+          <span class="badge badge-type">${esc(o.order_type.replace('_',' '))}</span>
+          <span class="badge badge-src">${esc(o.source)}</span>
+        </div>
+      </div>
+      <div class="oc-items">${itemsHtml || '&mdash;'}</div>
+      ${custBits.length ? `<div class="oc-cust">${custBits.join(' &middot; ')}</div>` : ''}
+      ${riderRow}
+      <div class="oc-pay">
+        <span>${esc(o.payment_method)}</span>
+        <span class="pay-tag ${o.payment_confirmed?'confirmed':'pending'}" style="cursor:pointer;" onclick="togglePayment('${o.id}', ${!o.payment_confirmed})">
+          ${o.payment_confirmed ? 'Paid' : 'Awaiting payment'}
+        </span>
+      </div>
+      <div class="oc-total mono">${money(o.total)}</div>
+      <div class="oc-actions">${actionsHtml}</div>
+    </div>
+  `;
+}
+
+function renderBoard(){
+  const board = document.getElementById('board');
+  board.innerHTML = STATUS_COLUMNS.map(col => {
+    const colOrders = orders.filter(o => o.status === col.key);
+    const cards = colOrders.length
+      ? colOrders.map(orderCardHtml).join('')
+      : '<div class="empty-col">No orders</div>';
+    return `
+      <div class="col">
+        <div class="col-head"><h3>${col.label}</h3><span class="col-count">${colOrders.length}</span></div>
+        ${cards}
+      </div>
+    `;
+  }).join('');
+}
+
+// ---------- Actions ----------
+async function advance(orderId, newStatus){
+  const { error } = await sb.from('orders').update({ status: newStatus }).eq('id', orderId);
+  if(error){ showToast('Update failed: ' + error.message, true); return; }
+  await loadActiveOrders(); renderBoard();
+}
+async function cancelOrder(orderId){
+  if(!confirm('Cancel this order?')) return;
+  const { error } = await sb.from('orders').update({ status: 'cancelled' }).eq('id', orderId);
+  if(error){ showToast('Cancel failed: ' + error.message, true); return; }
+  await loadActiveOrders(); renderBoard();
+}
+async function assignRider(orderId, riderId){
+  const { error } = await sb.from('orders').update({ rider_id: riderId || null }).eq('id', orderId);
+  if(error) showToast('Could not assign rider: ' + error.message, true);
+}
+async function togglePayment(orderId, newVal){
+  const { error } = await sb.from('orders').update({ payment_confirmed: newVal }).eq('id', orderId);
+  if(error){ showToast('Could not update payment: ' + error.message, true); return; }
+  await loadActiveOrders(); renderBoard();
+}
+
+// ---------- Reports ----------
+async function loadReports(){
+  const startOfDay = new Date(); startOfDay.setHours(0,0,0,0);
+  const { data: todaysOrders, error } = await sb.from('orders')
+    .select('id,total,status')
+    .gte('created_at', startOfDay.toISOString())
+    .neq('status', 'cancelled');
+  if(error){ showToast('Could not load reports: ' + error.message, true); return; }
+
+  const orderCount = (todaysOrders||[]).length;
+  const totalSales = (todaysOrders||[]).reduce((s,o) => s + Number(o.total||0), 0);
+  const avgOrder = orderCount ? totalSales / orderCount : 0;
+
+  document.getElementById('statGrid').innerHTML = `
+    <div class="stat-card"><div class="label">Orders today</div><div class="value">${orderCount}</div></div>
+    <div class="stat-card"><div class="label">Sales today</div><div class="value">${money(totalSales)}</div></div>
+    <div class="stat-card"><div class="label">Average order</div><div class="value">${money(avgOrder)}</div></div>
+  `;
+
+  const ids = (todaysOrders||[]).map(o => o.id);
+  const tbody = document.getElementById('bestSellersBody');
+  if(!ids.length){ tbody.innerHTML = '<tr><td colspan="3">No orders yet today.</td></tr>'; return; }
+
+  const { data: itemRows } = await sb.from('order_items').select('item_name,quantity,line_total').in('order_id', ids);
+  const totals = {};
+  (itemRows||[]).forEach(r => {
+    const t = totals[r.item_name] || { qty:0, revenue:0 };
+    t.qty += r.quantity; t.revenue += Number(r.line_total||0);
+    totals[r.item_name] = t;
+  });
+  const sorted = Object.entries(totals).sort((a,b) => b[1].qty - a[1].qty).slice(0, 10);
+  tbody.innerHTML = sorted.length
+    ? sorted.map(([name, t]) => `<tr><td>${esc(name)}</td><td>${t.qty}</td><td>${money(t.revenue)}</td></tr>`).join('')
+    : '<tr><td colspan="3">No items sold yet today.</td></tr>';
+}
+</script>
+</body>
+</html>

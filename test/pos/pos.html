@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tangy's — Counter POS</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Space+Grotesk:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FBF6EE; --panel:#FFFFFF; --line:rgba(32,16,8,0.09);
+    --ink:#211208; --muted:#8A7A6C; --muted-soft:#B8AA9C;
+    --brand:#E23B23; --brand-dark:#B92D19; --brand-soft:#FDE7E2;
+    --gold:#C9852B; --gold-soft:#FBF0DE;
+    --good:#1E7A46; --good-soft:#E7F5EC; --bad:#C13324; --bad-soft:#FBEAE7;
+    --shadow-sm:0 1px 2px rgba(32,16,8,0.05);
+    --shadow-md:0 6px 20px rgba(32,16,8,0.07);
+    --shadow-lg:0 16px 40px rgba(32,16,8,0.14);
+    --radius:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Space Grotesk',sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  button{font-family:inherit;cursor:pointer;}
+  input,select,textarea{font-family:inherit;}
+
+  /* Login (same shell as the manager panel) */
+  #loginScreen{min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .login-card{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:38px 34px;max-width:380px;width:100%;box-shadow:var(--shadow-lg);}
+  .logo-badge{background:var(--brand);border-radius:10px;padding:7px 13px;display:inline-flex;align-items:center;box-shadow:0 3px 0 var(--brand-dark);}
+  .logo-badge span{font-family:'Permanent Marker',cursive;color:#fff;font-size:1.05rem;line-height:1;}
+  .login-card .logo-badge{padding:9px 16px;margin-bottom:18px;}
+  .login-card .logo-badge span{font-size:1.2rem;}
+  .login-card h1{font-size:1.05rem;font-weight:700;margin-bottom:4px;}
+  .login-card .sub{font-size:0.86rem;color:var(--muted);margin-bottom:26px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--gold);margin-bottom:7px;}
+  .field input,.field select,.field textarea{width:100%;background:var(--bg);border:1.5px solid var(--line);border-radius:11px;padding:13px 14px;font-size:0.92rem;min-height:46px;}
+  .field textarea{min-height:0;}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--brand);outline:none;}
+  .btn{background:var(--brand);color:#fff;padding:13px 22px;border-radius:12px;font-weight:700;font-size:0.9rem;border:none;box-shadow:0 3px 0 var(--brand-dark);min-height:46px;}
+  .btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--brand-dark);}
+  .btn:disabled{opacity:0.55;pointer-events:none;}
+  .btn-ghost{background:var(--panel);border:1.5px solid var(--line);color:var(--ink);padding:11px 18px;border-radius:12px;font-weight:600;font-size:0.86rem;min-height:44px;}
+  .err{color:var(--bad);font-size:0.84rem;margin-top:14px;min-height:1em;}
+
+  /* App shell */
+  #appScreen{display:none;min-height:100vh;min-height:100dvh;}
+  header{position:sticky;top:0;z-index:20;background:rgba(251,246,238,0.96);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+  header .head-left{display:flex;align-items:center;gap:10px;}
+  .status-dot{width:9px;height:9px;border-radius:50%;background:var(--good);flex-shrink:0;}
+  .status-dot.off{background:var(--bad);}
+  .status-txt{font-size:0.74rem;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
+  .queue-badge{background:var(--gold-soft);color:var(--gold);font-size:0.72rem;font-weight:700;padding:5px 10px;border-radius:999px;font-family:'IBM Plex Mono',monospace;}
+  .queue-badge.hide{display:none;}
+  header .head-right{display:flex;align-items:center;gap:10px;}
+  .who{font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:var(--muted);}
+
+  #posLayout{display:grid;grid-template-columns:1fr 380px;gap:0;min-height:calc(100vh - 60px);min-height:calc(100dvh - 60px);}
+  @media(max-width:900px){#posLayout{grid-template-columns:1fr;}}
+
+  /* Menu side */
+  .menu-side{padding:16px;overflow-y:auto;}
+  .cat-tabs{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:12px;}
+  .cat-tabs::-webkit-scrollbar{display:none;}
+  .cat-tab{white-space:nowrap;padding:10px 16px;border-radius:999px;font-size:0.84rem;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--muted);flex-shrink:0;min-height:40px;}
+  .cat-tab.active{background:var(--brand);color:#fff;border-color:var(--brand);}
+  .item-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;}
+  .item-tile{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 12px;text-align:left;box-shadow:var(--shadow-sm);min-height:78px;display:flex;flex-direction:column;justify-content:space-between;}
+  .item-tile:active{transform:scale(0.97);}
+  .item-tile .it-name{font-weight:700;font-size:0.86rem;line-height:1.3;}
+  .item-tile .it-price{font-family:'IBM Plex Mono',monospace;color:var(--brand);font-size:0.82rem;font-weight:700;margin-top:6px;}
+  .empty-menu{color:var(--muted);font-size:0.86rem;padding:30px 0;text-align:center;}
+
+  /* Order side */
+  .order-side{background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;height:calc(100vh - 60px);height:calc(100dvh - 60px);position:sticky;top:60px;}
+  @media(max-width:900px){.order-side{border-left:none;border-top:1px solid var(--line);height:auto;position:static;}}
+  .order-head{padding:16px;border-bottom:1px solid var(--line);}
+  .type-pills{display:flex;gap:6px;}
+  .type-pill{flex:1;padding:10px 8px;border-radius:10px;font-size:0.8rem;font-weight:700;background:var(--bg);border:1.5px solid var(--line);color:var(--muted);min-height:40px;}
+  .type-pill.active{background:var(--brand);color:#fff;border-color:var(--brand);}
+  .order-lines{flex:1;overflow-y:auto;padding:10px 16px;}
+  .order-line{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line);}
+  .order-line .ol-name{flex:1;font-size:0.86rem;font-weight:600;}
+  .order-line .ol-price{font-family:'IBM Plex Mono',monospace;font-size:0.8rem;color:var(--muted);white-space:nowrap;}
+  .qty-stepper{display:flex;align-items:center;gap:8px;background:var(--bg);border-radius:999px;padding:4px;}
+  .qty-stepper button{width:26px;height:26px;border-radius:50%;background:var(--panel);border:1px solid var(--line);font-weight:700;line-height:1;}
+  .qty-stepper span{min-width:16px;text-align:center;font-size:0.82rem;font-weight:700;}
+  .order-empty{color:var(--muted);font-size:0.84rem;text-align:center;padding:30px 10px;}
+  .order-foot{padding:16px;border-top:1px solid var(--line);}
+  .order-foot .field{margin-bottom:10px;}
+  .pay-pills{display:flex;gap:6px;margin-bottom:10px;}
+  .pay-pill{flex:1;padding:9px 6px;border-radius:9px;font-size:0.76rem;font-weight:700;background:var(--bg);border:1.5px solid var(--line);color:var(--muted);min-height:38px;}
+  .pay-pill.active{background:var(--gold);color:#fff;border-color:var(--gold);}
+  .checkbox-row{display:flex;align-items:center;gap:9px;margin-bottom:12px;}
+  .checkbox-row input{width:18px;height:18px;accent-color:var(--brand);}
+  .checkbox-row label{font-size:0.84rem;}
+  .total-row{display:flex;justify-content:space-between;font-weight:800;font-size:1.05rem;margin-bottom:12px;}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--good);color:#fff;padding:13px 24px;border-radius:12px;font-weight:700;font-size:0.86rem;z-index:99;opacity:0;pointer-events:none;transition:opacity .2s ease;box-shadow:var(--shadow-lg);max-width:90vw;}
+  .toast.show{opacity:1;}
+  .toast.err{background:var(--bad);}
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="logo-badge"><span>Tangy&#8217;s</span></div>
+    <h1>Counter POS</h1>
+    <p class="sub">Sign in with your staff account to start taking orders.</p>
+    <div class="field"><label>Email</label><input type="email" id="loginEmail" autocomplete="username"></div>
+    <div class="field"><label>Password</label><input type="password" id="loginPass" autocomplete="current-password"></div>
+    <button class="btn" style="width:100%;" onclick="doLogin()">Sign in</button>
+    <div class="err" id="loginErr"></div>
+  </div>
+</div>
+
+<div id="appScreen">
+  <header>
+    <div class="head-left">
+      <div class="logo-badge"><span>Tangy&#8217;s</span></div>
+      <span class="status-dot" id="statusDot"></span>
+      <span class="status-txt" id="statusTxt">online</span>
+      <span class="queue-badge hide" id="queueBadge">0 unsynced</span>
+    </div>
+    <div class="head-right">
+      <span class="who mono" id="whoEmail"></span>
+      <button class="btn-ghost" onclick="doLogout()">Sign out</button>
+    </div>
+  </header>
+
+  <div id="posLayout">
+    <div class="menu-side">
+      <div class="cat-tabs" id="catTabs"></div>
+      <div class="item-grid" id="itemGrid"></div>
+    </div>
+
+    <div class="order-side">
+      <div class="order-head">
+        <div class="type-pills" id="typePills">
+          <button class="type-pill active" data-type="dine_in" onclick="setOrderType('dine_in')">Dine-in</button>
+          <button class="type-pill" data-type="pickup" onclick="setOrderType('pickup')">Pickup</button>
+          <button class="type-pill" data-type="delivery" onclick="setOrderType('delivery')">Delivery</button>
+        </div>
+      </div>
+
+      <div class="order-lines" id="orderLines">
+        <div class="order-empty">Tap items to add them to this order.</div>
+      </div>
+
+      <div class="order-foot">
+        <div id="deliveryFields" style="display:none;">
+          <div class="field"><label>Customer name</label><input type="text" id="custName" placeholder="Name"></div>
+          <div class="field"><label>Phone</label><input type="text" id="custPhone" placeholder="03xx-xxxxxxx"></div>
+          <div class="field"><label>Delivery address</label><textarea id="custAddress" rows="2" placeholder="House / street"></textarea></div>
+          <div class="field"><label>Rider</label><select id="riderSelect"><option value="">Not assigned yet</option></select></div>
+        </div>
+        <div id="nameOnlyField" class="field">
+          <label>Customer name (optional)</label><input type="text" id="custNameSimple" placeholder="Name">
+        </div>
+
+        <label style="display:block;font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--gold);margin-bottom:7px;">Payment</label>
+        <div class="pay-pills" id="payPills">
+          <button class="pay-pill active" data-pay="cash">Cash</button>
+          <button class="pay-pill" data-pay="easypaisa">Easypaisa</button>
+          <button class="pay-pill" data-pay="jazzcash">JazzCash</button>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="paymentConfirmed">
+          <label for="paymentConfirmed">Payment already received</label>
+        </div>
+
+        <div class="total-row"><span>Total</span><span class="mono" id="orderTotal">Rs. 0</span></div>
+        <button class="btn" style="width:100%;" id="placeBtn" onclick="placeAndPrint()">Place &amp; print</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ====== Same Supabase project as the website / manager panel ======
+const SUPABASE_URL = 'https://sfsggkofnadleawlelih.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmc2dna29mbmFkbGVhd2xlbGloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3MzUxNTgsImV4cCI6MjEwMzMxMTE1OH0.3Bhdhp1QMbB9iJIben36y9DNxyaxgAlSssongOQJ7Qs';
+// Where the local print bridge listens (see /print-bridge). Change the port
+// here if you configure the bridge differently.
+const PRINT_BRIDGE_URL = 'http://localhost:9100/print';
+// ====================================================================
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const MENU_CACHE_KEY = 'tangys_pos_menu_cache';
+const RIDER_CACHE_KEY = 'tangys_pos_rider_cache';
+const QUEUE_KEY = 'tangys_pos_offline_queue';
+
+let categories = [], items = [], riders = [];
+let activeCatId = null;
+let orderType = 'dine_in';
+let cart = {}; // itemId -> {itemId, name, price, qty}
+
+function showToast(msg, isErr){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isErr ? ' err' : '');
+  setTimeout(()=>t.classList.remove('show'), 2400);
+}
+function money(n){ return 'Rs. ' + Math.round(Number(n)||0).toLocaleString(); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// ---------- Auth ----------
+async function doLogin(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginErr');
+  errEl.textContent = '';
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if(error){ errEl.textContent = 'Sign-in failed: ' + error.message; return; }
+  showApp(data.user);
+}
+async function doLogout(){
+  await sb.auth.signOut();
+  document.getElementById('appScreen').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+function showApp(user){
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'block';
+  document.getElementById('whoEmail').textContent = user.email;
+  boot();
+}
+(async function checkSession(){
+  const { data } = await sb.auth.getSession();
+  if(data.session){ showApp(data.session.user); }
+})();
+
+// ---------- Boot ----------
+async function boot(){
+  await loadMenu();
+  await loadRiders();
+  renderCatTabs();
+  renderItems();
+  updateConnectionUI();
+  updateQueueBadge();
+  trySyncQueue();
+}
+
+// ---------- Menu (cached for offline use) ----------
+async function loadMenu(){
+  try{
+    const [{data:cats, error:e1}, {data:its, error:e2}] = await Promise.all([
+      sb.from('categories').select('*').order('sort_order'),
+      sb.from('items').select('*').order('sort_order')
+    ]);
+    if(e1) throw e1; if(e2) throw e2;
+    categories = cats || []; items = its || [];
+    localStorage.setItem(MENU_CACHE_KEY, JSON.stringify({categories, items}));
+  }catch(err){
+    console.warn('Menu fetch failed, using cache:', err.message);
+    const cached = localStorage.getItem(MENU_CACHE_KEY);
+    if(cached){ const parsed = JSON.parse(cached); categories = parsed.categories; items = parsed.items; }
+    else showToast('No internet and no cached menu yet — connect once before going offline.', true);
+  }
+  if(categories.length) activeCatId = categories[0].id;
+}
+async function loadRiders(){
+  try{
+    const { data, error } = await sb.from('riders').select('*').eq('active', true).order('name');
+    if(error) throw error;
+    riders = data || [];
+    localStorage.setItem(RIDER_CACHE_KEY, JSON.stringify(riders));
+  }catch(err){
+    const cached = localStorage.getItem(RIDER_CACHE_KEY);
+    riders = cached ? JSON.parse(cached) : [];
+  }
+  const sel = document.getElementById('riderSelect');
+  sel.innerHTML = '<option value="">Not assigned yet</option>' +
+    riders.map(r => `<option value="${r.id}">${esc(r.name)}</option>`).join('');
+}
+
+// ---------- Menu UI ----------
+function renderCatTabs(){
+  const wrap = document.getElementById('catTabs');
+  if(!categories.length){ wrap.innerHTML = ''; return; }
+  wrap.innerHTML = categories.filter(c => !c.virtual).map(c =>
+    `<button class="cat-tab ${c.id===activeCatId?'active':''}" onclick="selectCat('${c.id}')">${esc(c.name)}</button>`
+  ).join('');
+}
+function selectCat(id){ activeCatId = id; renderCatTabs(); renderItems(); }
+function renderItems(){
+  const grid = document.getElementById('itemGrid');
+  const list = items.filter(i => i.category_id === activeCatId);
+  if(!list.length){ grid.innerHTML = '<div class="empty-menu">No items in this category.</div>'; return; }
+  grid.innerHTML = list.map(i => `
+    <button class="item-tile" onclick="addToCart('${i.id}')">
+      <span class="it-name">${esc(i.name)}</span>
+      <span class="it-price mono">${money(i.price)}</span>
+    </button>
+  `).join('');
+}
+
+// ---------- Order type ----------
+function setOrderType(type){
+  orderType = type;
+  document.querySelectorAll('.type-pill').forEach(b => b.classList.toggle('active', b.dataset.type===type));
+  document.getElementById('deliveryFields').style.display = type==='delivery' ? 'block' : 'none';
+  document.getElementById('nameOnlyField').style.display = type==='delivery' ? 'none' : 'block';
+}
+
+// ---------- Cart ----------
+function addToCart(itemId){
+  const item = items.find(i => i.id === itemId);
+  if(!item) return;
+  if(cart[itemId]) cart[itemId].qty += 1;
+  else cart[itemId] = { itemId, name: item.name, price: item.price, qty: 1 };
+  renderCart();
+}
+function decLine(itemId){
+  if(!cart[itemId]) return;
+  cart[itemId].qty -= 1;
+  if(cart[itemId].qty <= 0) delete cart[itemId];
+  renderCart();
+}
+function renderCart(){
+  const wrap = document.getElementById('orderLines');
+  const lines = Object.values(cart);
+  if(!lines.length){
+    wrap.innerHTML = '<div class="order-empty">Tap items to add them to this order.</div>';
+  }else{
+    wrap.innerHTML = lines.map(l => `
+      <div class="order-line">
+        <span class="ol-name">${esc(l.name)}</span>
+        <div class="qty-stepper">
+          <button onclick="decLine('${l.itemId}')">&minus;</button>
+          <span>${l.qty}</span>
+          <button onclick="addToCart('${l.itemId}')">+</button>
+        </div>
+        <span class="ol-price mono">${money(l.price*l.qty)}</span>
+      </div>
+    `).join('');
+  }
+  const total = lines.reduce((s,l) => s + l.price*l.qty, 0);
+  document.getElementById('orderTotal').textContent = money(total);
+}
+
+document.getElementById('payPills').addEventListener('click', e => {
+  const btn = e.target.closest('.pay-pill');
+  if(!btn) return;
+  document.querySelectorAll('.pay-pill').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+});
+
+// ---------- Connection status ----------
+function updateConnectionUI(){
+  const online = navigator.onLine;
+  document.getElementById('statusDot').classList.toggle('off', !online);
+  document.getElementById('statusTxt').textContent = online ? 'online' : 'offline — queuing locally';
+}
+window.addEventListener('online', () => { updateConnectionUI(); trySyncQueue(); });
+window.addEventListener('offline', updateConnectionUI);
+
+function getQueue(){ return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]'); }
+function setQueue(q){ localStorage.setItem(QUEUE_KEY, JSON.stringify(q)); updateQueueBadge(); }
+function updateQueueBadge(){
+  const n = getQueue().length;
+  const badge = document.getElementById('queueBadge');
+  badge.textContent = n + ' unsynced';
+  badge.classList.toggle('hide', n===0);
+}
+
+async function trySyncQueue(){
+  if(!navigator.onLine) return;
+  let queue = getQueue();
+  if(!queue.length) return;
+  const remaining = [];
+  for(const entry of queue){
+    try{
+      await saveOrderToSupabase(entry.orderPayload, entry.itemsPayload);
+    }catch(err){
+      remaining.push(entry); // still failing — keep it queued
+    }
+  }
+  setQueue(remaining);
+  if(remaining.length < queue.length) showToast(`Synced ${queue.length - remaining.length} queued order(s).`);
+}
+setInterval(trySyncQueue, 30000);
+
+// ---------- Save (direct insert — staff is authenticated, so this is
+// allowed by RLS without needing the public place_order RPC) ----------
+async function saveOrderToSupabase(orderPayload, itemsPayload){
+  const { data: orderRow, error: orderErr } = await sb.from('orders').insert(orderPayload).select().single();
+  if(orderErr) throw orderErr;
+  const rows = itemsPayload.map(i => ({ ...i, order_id: orderRow.id }));
+  const { error: itemsErr } = await sb.from('order_items').insert(rows);
+  if(itemsErr) throw itemsErr;
+  return orderRow;
+}
+
+// ---------- Place & print ----------
+async function placeAndPrint(){
+  const lines = Object.values(cart);
+  if(!lines.length){ showToast('Add at least one item first.', true); return; }
+
+  const paymentMethod = document.querySelector('.pay-pill.active')?.dataset.pay || 'cash';
+  const paymentConfirmed = document.getElementById('paymentConfirmed').checked;
+  let customerName, customerPhone, deliveryAddress, riderId;
+
+  if(orderType === 'delivery'){
+    customerName = document.getElementById('custName').value.trim();
+    customerPhone = document.getElementById('custPhone').value.trim();
+    deliveryAddress = document.getElementById('custAddress').value.trim();
+    riderId = document.getElementById('riderSelect').value || null;
+    if(!customerName || !customerPhone || !deliveryAddress){
+      showToast('Delivery orders need a name, phone, and address.', true);
+      return;
+    }
+  }else{
+    customerName = document.getElementById('custNameSimple').value.trim();
+  }
+
+  const total = lines.reduce((s,l) => s + l.price*l.qty, 0);
+  const orderPayload = {
+    order_type: orderType,
+    source: 'pos',
+    payment_method: paymentMethod,
+    payment_confirmed: paymentConfirmed,
+    customer_name: customerName || null,
+    customer_phone: customerPhone || null,
+    delivery_address: deliveryAddress || null,
+    rider_id: riderId || null,
+    subtotal: total, discount: 0, total
+  };
+  const itemsPayload = lines.map(l => ({
+    item_id: l.itemId, item_name: l.name, unit_price: l.price,
+    quantity: l.qty, addons: [], line_total: l.price*l.qty
+  }));
+
+  const btn = document.getElementById('placeBtn');
+  btn.disabled = true;
+
+  // Print first — printing must never wait on (or be blocked by) the network.
+  await printReceipt({ orderType, paymentMethod, customerName, customerPhone, deliveryAddress, lines, total });
+
+  try{
+    if(!navigator.onLine) throw new Error('offline');
+    const orderRow = await saveOrderToSupabase(orderPayload, itemsPayload);
+    showToast(`Order #${orderRow.order_number} saved.`);
+  }catch(err){
+    const queue = getQueue();
+    queue.push({ orderPayload, itemsPayload, queuedAt: new Date().toISOString() });
+    setQueue(queue);
+    showToast('Saved locally — will sync once you\'re back online.', false);
+  }
+
+  cart = {};
+  renderCart();
+  document.getElementById('paymentConfirmed').checked = false;
+  if(orderType === 'delivery'){
+    document.getElementById('custName').value = '';
+    document.getElementById('custPhone').value = '';
+    document.getElementById('custAddress').value = '';
+  }else{
+    document.getElementById('custNameSimple').value = '';
+  }
+  btn.disabled = false;
+}
+
+// ---------- Receipt printing ----------
+function buildReceiptText({ orderType, paymentMethod, customerName, customerPhone, deliveryAddress, lines, total }){
+  const rows = [];
+  rows.push("Tangy's");
+  rows.push(new Date().toLocaleString());
+  rows.push('Type: ' + orderType.replace('_',' '));
+  if(customerName) rows.push('Customer: ' + customerName);
+  if(customerPhone) rows.push('Phone: ' + customerPhone);
+  if(deliveryAddress) rows.push('Address: ' + deliveryAddress);
+  rows.push('------------------------------');
+  lines.forEach(l => rows.push(`${l.qty}x ${l.name}`.padEnd(24) + money(l.price*l.qty)));
+  rows.push('------------------------------');
+  rows.push(('TOTAL').padEnd(24) + money(total));
+  rows.push('Payment: ' + paymentMethod);
+  return rows.join('\n');
+}
+
+async function printReceipt(orderInfo){
+  const text = buildReceiptText(orderInfo);
+  try{
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 2000);
+    const res = await fetch(PRINT_BRIDGE_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ text }),
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+    if(!res.ok) throw new Error('bridge returned ' + res.status);
+  }catch(err){
+    // Local print bridge not reachable (not installed, or not running) —
+    // fall back to the browser's own print dialog so a receipt still comes out.
+    printViaBrowser(text);
+  }
+}
+function printViaBrowser(text){
+  const w = window.open('', '_blank', 'width=320,height=600');
+  w.document.write(`<pre style="font-family:monospace;font-size:13px;white-space:pre-wrap;">${esc(text)}</pre>`);
+  w.document.close();
+  w.focus();
+  w.print();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,1847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tangy's — Operations</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Space+Grotesk:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F6F4F0; --panel:#FFFFFF; --ink:#201A16; --muted:#847A70; --muted-soft:#B7AEA4;
+    --line:rgba(32,22,14,0.09);
+    --sidebar:#1C1815; --sidebar-line:rgba(255,255,255,0.08); --sidebar-ink:#EDE7DF; --sidebar-muted:#948B81;
+    --brand:#E23B23; --brand-dark:#B92D19; --brand-soft:#FCE6E1;
+    --gold:#C9852B; --gold-soft:#FBF0DE;
+    --good:#1E7A46; --good-soft:#E7F5EC;
+    --info:#2461B0; --info-soft:#E7EFFA;
+    --bad:#C13324; --bad-soft:#FBEAE7;
+    --shadow-sm:0 1px 2px rgba(28,18,10,0.05); --shadow-md:0 8px 24px rgba(28,18,10,0.08); --shadow-lg:0 16px 40px rgba(28,18,10,0.14);
+    --r:14px; --radius:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Space Grotesk',sans-serif;-webkit-font-smoothing:antialiased;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+  input,select,textarea{font-family:inherit;}
+  svg{display:block;}
+  :focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:4px;}
+  @media (prefers-reduced-motion: reduce){ *,*::before,*::after{animation-duration:0.001ms !important;transition-duration:0.001ms !important;} }
+
+  /* ---------- Login ---------- */
+  #loginScreen{min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(circle at 20% 15%, rgba(226,59,35,0.06), transparent 45%), radial-gradient(circle at 85% 85%, rgba(201,133,43,0.07), transparent 45%);}
+  .login-card{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:38px 34px;max-width:380px;width:100%;box-shadow:var(--shadow-lg);}
+  .logo-badge{background:var(--brand);border-radius:10px;padding:9px 16px;display:inline-flex;align-items:center;box-shadow:0 3px 0 var(--brand-dark);margin-bottom:18px;}
+  .logo-badge span{font-family:'Permanent Marker',cursive;color:#fff;font-size:1.2rem;line-height:1;}
+  .login-card h1{font-size:1.05rem;font-weight:700;margin-bottom:4px;}
+  .login-card .sub{font-size:0.86rem;color:var(--muted);margin-bottom:26px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--gold);margin-bottom:7px;}
+  .field input,.field select,.field textarea{width:100%;background:var(--bg);border:1.5px solid var(--line);border-radius:11px;padding:13px 14px;font-size:0.92rem;min-height:46px;}
+  .field textarea{min-height:0;}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--brand);outline:none;}
+  .btn{padding:10px 16px;border-radius:10px;font-weight:700;font-size:0.84rem;display:inline-flex;align-items:center;gap:7px;min-height:44px;}
+  .btn-brand{background:var(--brand);color:#fff;box-shadow:0 2px 0 var(--brand-dark);}
+  .btn-brand:active{transform:translateY(1px);box-shadow:0 1px 0 var(--brand-dark);}
+  .btn-brand.success{background:var(--good);box-shadow:0 2px 0 #145934;}
+  .btn-ghost{background:var(--bg);border:1px solid var(--line);color:var(--ink);}
+  .btn-danger{background:var(--bad-soft);border:1px solid rgba(193,51,36,0.2);color:var(--bad);}
+  .btn-sm{padding:7px 12px;font-size:0.76rem;border-radius:8px;min-height:36px;}
+  .err{color:var(--bad);font-size:0.84rem;margin-top:14px;min-height:1em;}
+
+  /* ---------- Shell ---------- */
+  #shell{min-height:100vh;min-height:100dvh;}
+  .shell-main{margin-left:236px;min-height:100vh;min-height:100dvh;}
+  @media(max-width:900px){.shell-main{margin-left:0;}}
+  aside{background:var(--sidebar);color:var(--sidebar-ink);display:flex;flex-direction:column;padding:20px 14px;position:fixed;top:0;left:0;width:236px;height:100vh;height:100dvh;overflow-y:auto;z-index:15;}
+  @media(max-width:900px){aside{display:none;}}
+  .brand{display:flex;align-items:center;gap:10px;padding:6px 10px 22px;}
+  .brand-mark{width:34px;height:34px;border-radius:9px;background:var(--brand);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;flex-shrink:0;}
+  .brand-text{font-weight:700;font-size:0.95rem;letter-spacing:-0.01em;}
+  .brand-sub{font-size:0.68rem;color:var(--sidebar-muted);font-family:'IBM Plex Mono',monospace;}
+  nav{display:flex;flex-direction:column;gap:2px;flex:1;}
+  .nav-group-label{font-size:0.64rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--sidebar-muted);padding:14px 12px 6px;}
+  .nav-item{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;font-size:0.86rem;font-weight:500;color:var(--sidebar-muted);position:relative;text-align:left;width:100%;}
+  .nav-item svg{width:17px;height:17px;flex-shrink:0;}
+  .nav-item:hover{background:rgba(255,255,255,0.05);color:var(--sidebar-ink);}
+  .nav-item.active{background:rgba(255,255,255,0.07);color:#fff;}
+  .nav-item.active::before{content:'';position:absolute;left:-14px;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--brand);}
+  .nav-count{margin-left:auto;background:var(--brand);color:#fff;font-size:0.66rem;font-weight:700;padding:2px 7px;border-radius:999px;font-family:'IBM Plex Mono',monospace;}
+  .sidebar-foot{border-top:1px solid var(--sidebar-line);padding-top:14px;margin-top:10px;display:flex;align-items:center;gap:10px;padding-left:12px;}
+  .avatar{width:30px;height:30px;border-radius:9px;background:var(--gold);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.78rem;flex-shrink:0;}
+  .sf-name{font-size:0.82rem;font-weight:600;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .sf-role{font-size:0.68rem;color:var(--sidebar-muted);}
+
+  .topbar{background:var(--panel);border-bottom:1px solid var(--line);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;position:sticky;top:0;z-index:10;flex-wrap:wrap;}
+  .topbar h1{font-size:1.15rem;font-weight:700;letter-spacing:-0.01em;}
+  .topbar .sub{font-size:0.78rem;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:2px;}
+  .topbar-mid{display:flex;align-items:center;gap:14px;flex:1;justify-content:center;max-width:420px;min-width:180px;}
+  .search-box{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 12px;width:100%;color:var(--muted);}
+  .search-box svg{width:15px;height:15px;flex-shrink:0;}
+  .search-box input{background:none;border:none;outline:none;font-size:0.82rem;width:100%;color:var(--ink);}
+  .search-box input::placeholder{color:var(--muted-soft);}
+  .search-box .kbd{font-family:'IBM Plex Mono',monospace;font-size:0.66rem;background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:1px 6px;color:var(--muted-soft);flex-shrink:0;}
+  .topbar-right{display:flex;align-items:center;gap:12px;}
+  .live-status{display:flex;align-items:center;gap:7px;font-size:0.76rem;color:var(--muted);font-family:'IBM Plex Mono',monospace;white-space:nowrap;}
+  .live-dot{width:7px;height:7px;border-radius:50%;background:var(--good);animation:pulseDot 1.8s ease infinite;}
+  .live-dot.off{background:var(--bad);animation:none;}
+  @keyframes pulseDot{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(30,122,70,0.35);}50%{opacity:0.55;box-shadow:0 0 0 4px rgba(30,122,70,0);}}
+  .bell-btn{position:relative;width:38px;height:38px;border-radius:10px;background:var(--bg);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .bell-btn svg{width:17px;height:17px;}
+  .bell-btn:hover{background:var(--brand-soft);color:var(--brand-dark);}
+  .bell-dot{position:absolute;top:7px;right:8px;width:7px;height:7px;border-radius:50%;background:var(--brand);border:1.5px solid var(--panel);display:none;}
+  .bell-dot.show{display:block;animation:pulseDot 1.6s ease infinite;}
+
+  main{padding:26px 28px 60px;max-width:1360px;}
+  .view{display:none;animation:viewIn .18s ease;}
+  .view.active{display:block;}
+  @keyframes viewIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+  .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
+  @media(max-width:1100px){.stat-grid{grid-template-columns:repeat(2,1fr);}}
+  .stat-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;box-shadow:var(--shadow-sm);}
+  .stat-card .label{font-size:0.76rem;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+  .stat-card .value{font-size:1.55rem;font-weight:800;font-family:'IBM Plex Mono',monospace;letter-spacing:-0.01em;}
+  .stat-icon{width:26px;height:26px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .stat-icon svg{width:13px;height:13px;}
+  .stat-icon.gold{background:var(--gold-soft);color:var(--gold);}
+  .stat-icon.info{background:var(--info-soft);color:var(--info);}
+  .stat-icon.good{background:var(--good-soft);color:var(--good);}
+  .stat-icon.brand{background:var(--brand-soft);color:var(--brand-dark);}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow-sm);overflow:hidden;}
+  .panel-head{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+  .panel-head h3{font-size:0.92rem;font-weight:700;}
+  table{width:100%;border-collapse:collapse;}
+  th{text-align:left;padding:11px 20px;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);font-weight:700;border-bottom:1px solid var(--line);}
+  td{padding:13px 20px;font-size:0.84rem;border-bottom:1px solid var(--line);vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:rgba(226,59,35,0.02);}
+  .order-id{font-family:'IBM Plex Mono',monospace;font-weight:700;}
+  .badge{display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;font-size:0.7rem;font-weight:700;}
+  .badge-pending{background:var(--gold-soft);color:var(--gold);}
+  .badge-preparing{background:var(--info-soft);color:var(--info);}
+  .badge-ready{background:var(--good-soft);color:var(--good);}
+  .badge-out_for_delivery{background:#EFE7FB;color:#6B3FB0;}
+  .badge-completed{background:var(--bg);color:var(--muted);}
+  .badge-cancelled{background:var(--bad-soft);color:var(--bad);}
+  .pill{display:inline-flex;padding:3px 9px;border-radius:7px;font-size:0.7rem;font-weight:600;background:var(--bg);color:var(--muted);}
+
+  .status-tabs{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;}
+  .status-tab{padding:9px 15px;border-radius:9px;font-size:0.82rem;font-weight:700;color:var(--muted);background:var(--panel);border:1px solid var(--line);white-space:nowrap;display:flex;align-items:center;gap:7px;}
+  .status-tab.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .status-tab .n{font-family:'IBM Plex Mono',monospace;font-size:0.72rem;opacity:0.7;}
+  .row-action{background:var(--bg);border:1px solid var(--line);padding:7px 12px;border-radius:8px;font-size:0.76rem;font-weight:700;}
+  .row-action:hover{background:var(--brand-soft);color:var(--brand-dark);border-color:transparent;}
+  .row-cancel{color:var(--muted-soft);font-size:0.74rem;font-weight:600;padding:6px 4px;flex-shrink:0;}
+  .row-cancel:hover{color:var(--bad);}
+  .pay-tag{cursor:pointer;font-weight:700;}
+  .pay-tag.confirmed{color:var(--good);}
+  .pay-tag.pending{color:var(--bad);}
+  .empty-state{display:flex;flex-direction:column;align-items:center;gap:10px;padding:40px 20px;text-align:center;color:var(--muted-soft);font-size:0.86rem;}
+  .empty-state svg{width:30px;height:30px;color:var(--muted-soft);}
+
+  .pos-layout{display:grid;grid-template-columns:1fr 372px;gap:20px;align-items:start;}
+  @media(max-width:1080px){.pos-layout{grid-template-columns:1fr;}}
+  .cat-row-pills{display:flex;gap:8px;overflow-x:auto;margin-bottom:16px;padding-bottom:2px;}
+  .cat-pill{white-space:nowrap;padding:9px 16px;border-radius:9px;font-size:0.82rem;font-weight:700;background:var(--panel);border:1px solid var(--line);color:var(--muted);}
+  .cat-pill.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .item-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:12px;}
+  .item-card{background:var(--panel);border:1px solid var(--line);border-radius:13px;overflow:hidden;text-align:left;box-shadow:var(--shadow-sm);transition:transform .12s ease, box-shadow .12s ease;}
+  .item-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
+  .item-card:active{transform:translateY(0px) scale(0.98);}
+  .item-photo{width:100%;aspect-ratio:4/3;object-fit:cover;background:var(--bg);display:block;}
+  .item-photo-ph{width:100%;aspect-ratio:4/3;background:linear-gradient(135deg,#F3E7D8,#FCEFE0);display:flex;align-items:center;justify-content:center;font-size:1.6rem;color:var(--gold);}
+  .item-body{padding:10px 12px 12px;}
+  .item-name{font-size:0.82rem;font-weight:700;line-height:1.3;}
+  .item-price{font-family:'IBM Plex Mono',monospace;font-size:0.8rem;color:var(--brand);font-weight:700;}
+
+  .ticket{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow-sm);position:sticky;top:88px;display:flex;flex-direction:column;max-height:calc(100vh - 108px);overflow:hidden;}
+  .ticket-head{padding:14px 18px;border-bottom:1px solid var(--line);flex-shrink:0;}
+  .type-pills{display:flex;gap:6px;}
+  .type-pill{flex:1;padding:9px 6px;border-radius:9px;font-size:0.78rem;font-weight:700;background:var(--bg);border:1px solid var(--line);color:var(--muted);text-align:center;}
+  .type-pill.active{background:var(--brand);color:#fff;border-color:var(--brand);}
+  .ticket-lines{flex:1 1 auto;overflow-y:auto;padding:6px 18px;min-height:44px;}
+  .tline{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);}
+  .tline:last-child{border-bottom:none;}
+  .tline img,.tline .tline-ph{width:34px;height:34px;border-radius:8px;object-fit:cover;flex-shrink:0;}
+  .tline .tline-ph{background:linear-gradient(135deg,#F3E7D8,#FCEFE0);display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:0.9rem;}
+  .tline-name{flex:1;font-size:0.8rem;font-weight:600;line-height:1.3;}
+  .tline-price{font-family:'IBM Plex Mono',monospace;font-size:0.76rem;color:var(--muted);white-space:nowrap;}
+  .stepper{display:flex;align-items:center;gap:7px;background:var(--bg);border-radius:999px;padding:3px;}
+  .stepper button{width:22px;height:22px;border-radius:50%;background:var(--panel);border:1px solid var(--line);font-weight:700;line-height:1;font-size:0.8rem;}
+  .stepper span{min-width:14px;text-align:center;font-size:0.78rem;font-weight:700;}
+  .ticket-empty{color:var(--muted-soft);font-size:0.82rem;text-align:center;padding:20px 10px;}
+  .ticket-foot{padding:12px 18px 14px;border-top:1px solid var(--line);flex-shrink:0;display:flex;flex-direction:column;min-height:0;}
+  .ticket-foot-scroll{overflow-y:auto;max-height:34vh;padding-right:2px;}
+  .foot-field{margin-bottom:8px;}
+  .foot-field label{display:block;font-size:0.64rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--gold);font-weight:700;margin-bottom:5px;}
+  .foot-field input,.foot-field textarea,.foot-field select{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:0.84rem;}
+  .foot-field textarea{resize:none;}
+  .foot-row-2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .pay-row{display:flex;gap:6px;margin-bottom:2px;}
+  .pay-pill{flex:1;padding:8px 4px;border-radius:8px;font-size:0.74rem;font-weight:700;background:var(--bg);border:1px solid var(--line);color:var(--muted);}
+  .pay-pill.active{background:var(--gold);color:#fff;border-color:var(--gold);}
+  .divider-dash{border-top:1px dashed var(--line);margin:10px 0 8px;flex-shrink:0;}
+  .total-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-shrink:0;}
+  .total-row .lbl{font-size:0.8rem;color:var(--muted);}
+  .total-row .val{font-size:1.25rem;font-weight:800;font-family:'IBM Plex Mono',monospace;}
+  .ticket-subrow{display:flex;justify-content:space-between;font-size:0.78rem;color:var(--muted);margin-bottom:6px;}
+  .ticket-subrow .mono{color:var(--ink);}
+  .row-new{animation:rowFlash 1.6s ease;}
+  @keyframes rowFlash{0%{background:var(--gold-soft);}100%{background:transparent;}}
+  .ticket.flash-success{animation:ticketFlash .5s ease;}
+  @keyframes ticketFlash{0%{box-shadow:0 0 0 0 rgba(30,122,70,0.4);}100%{box-shadow:var(--shadow-sm);}}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 22px;border-radius:10px;font-weight:600;font-size:0.84rem;z-index:99;opacity:0;pointer-events:none;transition:opacity .2s ease;box-shadow:var(--shadow-md);max-width:90vw;}
+  .toast.show{opacity:1;}
+  .toast.err{background:var(--bad);}
+
+  /* ---------- Menu / Discounts / Banners / Settings (namespaced mn-) ---------- */
+  .mn-subtabs{display:flex;gap:4px;margin-bottom:18px;border-bottom:1px solid var(--line);}
+  .mn-subtab{padding:10px 4px;margin-right:20px;font-size:0.86rem;font-weight:700;color:var(--muted);border-bottom:2px solid transparent;}
+  .mn-subtab.active{color:var(--brand);border-bottom-color:var(--brand);}
+  .mn-section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:12px;flex-wrap:wrap;}
+  .mn-section-help{color:var(--muted);font-size:0.84rem;margin-bottom:18px;max-width:640px;line-height:1.55;}
+  .mn-cat-row{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 20px;margin-bottom:12px;box-shadow:var(--shadow-sm);}
+  .mn-cat-row.open{box-shadow:var(--shadow-md);}
+  .mn-cat-row-head{display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:12px;flex-wrap:wrap;}
+  .mn-ct-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0;}
+  .mn-cat-row-head h4{font-size:1rem;font-weight:700;}
+  .mn-style-pill{font-family:'IBM Plex Mono',monospace;font-size:0.64rem;color:var(--gold);background:var(--gold-soft);padding:4px 9px;border-radius:999px;white-space:nowrap;}
+  .mn-count{color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:0.74rem;white-space:nowrap;}
+  .mn-chevron{transition:transform .2s ease;color:var(--muted-soft);flex-shrink:0;}
+  .mn-cat-row.open .mn-chevron{transform:rotate(90deg);color:var(--brand);}
+  .mn-cat-actions{display:flex;gap:8px;flex-shrink:0;}
+  .mn-items-list{display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--line);}
+  .mn-cat-row.open .mn-items-list{display:block;}
+  .mn-item-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);flex-wrap:wrap;}
+  .mn-item-row:last-child{border-bottom:none;}
+  .mn-item-thumb{width:46px;height:46px;border-radius:10px;background:linear-gradient(135deg,#F3E7D8,#FCEFE0);overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0;}
+  .mn-item-thumb img{width:100%;height:100%;object-fit:cover;}
+  .mn-item-row .mn-it-info{flex:1;min-width:120px;}
+  .mn-it-name{font-weight:700;font-size:0.9rem;}
+  .mn-it-meta{color:var(--muted);font-size:0.76rem;margin-top:2px;}
+  .mn-it-price{font-family:'IBM Plex Mono',monospace;color:var(--brand);font-size:0.86rem;white-space:nowrap;font-weight:600;}
+  .mn-it-price .mn-was{color:var(--muted-soft);text-decoration:line-through;font-size:0.72rem;margin-left:5px;font-weight:400;}
+  .mn-it-actions{display:flex;gap:8px;flex-shrink:0;margin-left:auto;}
+  .mn-add-item-btn{margin-top:14px;width:100%;background:var(--bg);border:1.5px dashed rgba(226,59,35,0.35);color:var(--brand);padding:13px;border-radius:12px;font-size:0.86rem;font-weight:700;min-height:46px;}
+  .mn-add-item-btn:hover{border-color:var(--brand);background:var(--brand-soft);}
+  .mn-add-cat-btn{background:var(--panel);border:1.5px dashed rgba(226,59,35,0.35);color:var(--brand);padding:18px;border-radius:var(--radius);font-size:0.9rem;font-weight:700;width:100%;min-height:56px;}
+  .mn-add-cat-btn:hover{border-color:var(--brand);background:var(--brand-soft);}
+  .mn-banner-row{display:flex;gap:14px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 18px;margin-bottom:12px;box-shadow:var(--shadow-sm);flex-wrap:wrap;}
+  .mn-banner-thumb{width:84px;height:56px;border-radius:10px;background:linear-gradient(135deg,#F3E7D8,#FCEFE0);overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0;}
+  .mn-banner-thumb img{width:100%;height:100%;object-fit:cover;}
+  .mn-banner-row .mn-bn-info{flex:1;min-width:150px;}
+  .mn-bn-title{font-weight:700;font-size:0.92rem;}
+  .mn-bn-sub{color:var(--muted);font-size:0.78rem;margin-top:2px;}
+  .mn-settings-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:26px;max-width:480px;box-shadow:var(--shadow-sm);}
+  .mn-settings-card .field:last-of-type{margin-bottom:0;}
+  .mn-settings-hint{color:var(--muted);font-size:0.76rem;margin-top:-11px;margin-bottom:16px;line-height:1.5;}
+  .mn-modal-overlay{position:fixed;inset:0;background:rgba(20,10,4,0.45);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s ease;}
+  .mn-modal-overlay.show{opacity:1;pointer-events:auto;}
+  .mn-modal-card{background:var(--panel);border-radius:20px;padding:26px;max-width:460px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:var(--shadow-lg);transform:translateY(14px);transition:transform .22s cubic-bezier(.32,.72,0,1);}
+  .mn-modal-overlay.show .mn-modal-card{transform:translateY(0);}
+  .mn-modal-card h3{font-size:1.05rem;font-weight:800;margin-bottom:18px;}
+  .mn-checkbox-row{display:flex;align-items:center;gap:9px;margin-bottom:13px;}
+  .mn-checkbox-row input{width:18px;height:18px;accent-color:var(--brand);flex-shrink:0;}
+  .mn-checkbox-row label{font-size:0.85rem;color:var(--ink);}
+  .mn-modal-foot{display:flex;gap:10px;margin-top:8px;position:sticky;bottom:-26px;background:var(--panel);padding-top:6px;}
+  .mn-modal-foot .btn{flex:1;justify-content:center;}
+  .mn-price-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .mn-addon-edit-row{display:grid;grid-template-columns:1fr 84px 34px;gap:8px;margin-bottom:8px;align-items:center;}
+  .mn-addon-edit-row input{width:100%;background:var(--bg);border:1.5px solid var(--line);border-radius:9px;padding:10px 11px;font-size:0.84rem;min-height:40px;}
+  .mn-addon-remove-btn{width:34px;height:34px;border-radius:9px;background:var(--bad-soft);border:none;color:var(--bad);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .mn-discount-controls{display:grid;grid-template-columns:220px 1fr;gap:20px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin-bottom:16px;align-items:end;box-shadow:var(--shadow-sm);}
+  .mn-discount-controls .field{margin-bottom:0;}
+  .mn-discount-presets{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .mn-preset-btn{border:1.5px solid var(--line);border-radius:10px;padding:11px 16px;font-size:0.85rem;font-weight:700;color:var(--ink);background:var(--panel);min-height:44px;}
+  .mn-preset-btn.active{background:var(--brand);color:#fff;border-color:var(--brand);}
+  .mn-discount-presets input{background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:11px 13px;font-size:0.85rem;min-height:44px;}
+  .mn-discount-select-all{margin-bottom:10px;font-size:0.86rem;font-weight:600;display:flex;align-items:center;gap:8px;}
+  .mn-discount-select-all input{width:17px;height:17px;accent-color:var(--brand);}
+  .mn-discount-item-row{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 14px;margin-bottom:8px;flex-wrap:wrap;box-shadow:var(--shadow-sm);}
+  .mn-discount-item-row input[type=checkbox]{width:18px;height:18px;accent-color:var(--brand);flex-shrink:0;}
+  .mn-discount-cat-label{font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--gold);text-transform:uppercase;margin:18px 0 8px;letter-spacing:0.03em;}
+  .mn-discount-sale-badge{font-size:0.7rem;font-weight:700;color:var(--good);background:var(--good-soft);padding:4px 9px;border-radius:999px;white-space:nowrap;}
+  .mn-discount-actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;}
+  .mn-upload-row{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+  .mn-upload-preview{width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,#F3E7D8,#FCEFE0);overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0;font-size:1.3rem;}
+  .mn-upload-preview img{width:100%;height:100%;object-fit:cover;}
+  .mn-upload-btn{background:var(--bg);border:1.5px dashed rgba(226,59,35,0.4);color:var(--brand);padding:12px 14px;border-radius:10px;font-size:0.82rem;font-weight:700;flex:1;text-align:center;min-height:44px;}
+  .mn-upload-btn:hover{border-color:var(--brand);background:var(--brand-soft);}
+  .mn-upload-status{font-size:0.76rem;color:var(--muted);margin-top:5px;}
+  .mn-rider-pick-btn{display:flex;align-items:center;justify-content:space-between;width:100%;text-align:left;background:var(--bg);border:1.5px solid var(--line);border-radius:12px;padding:13px 16px;margin-bottom:8px;font-size:0.88rem;font-weight:600;}
+  .mn-rider-pick-btn:hover{border-color:var(--brand);background:var(--brand-soft);}
+  .mn-rider-pick-btn .mn-rp-phone{color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:0.78rem;font-weight:400;}
+  .mn-rider-pick-btn.busy{opacity:0.6;}
+  .mn-rider-pick-btn .mn-rp-busy-tag{font-size:0.66rem;font-weight:700;color:var(--bad);background:var(--bad-soft);padding:2px 8px;border-radius:999px;margin-left:8px;}
+  .mn-order-rider{font-size:0.74rem;color:var(--muted);margin-top:2px;}
+  .addon-pick-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);}
+  .addon-pick-row:last-child{border-bottom:none;}
+  .addon-pick-name{flex:1;font-size:0.86rem;font-weight:600;}
+  .addon-pick-price{font-size:0.78rem;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
+  .addon-pick-btn{width:28px;height:28px;border-radius:8px;background:var(--brand-soft);color:var(--brand);font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:none;}
+  .addon-pick-btn.active{background:var(--brand);color:#fff;}
+  .tline-addons{font-size:0.72rem;color:var(--brand);margin-top:1px;}
+  .charge-row{display:grid;grid-template-columns:1fr 84px 30px;gap:8px;margin-bottom:8px;align-items:center;}
+  .charge-row input{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 9px;font-size:0.82rem;}
+  .charge-remove-btn{width:28px;height:28px;border-radius:8px;background:var(--bad-soft);color:var(--bad);border:none;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .add-charge-btn{background:var(--bg);border:1.5px dashed rgba(226,59,35,0.35);color:var(--brand);padding:8px;border-radius:9px;font-size:0.78rem;font-weight:700;width:100%;margin-top:2px;}
+  @media(max-width:640px){
+    .mn-modal-overlay{align-items:flex-end;padding:0;}
+    .mn-modal-card{max-width:100%;width:100%;border-radius:20px 20px 0 0;max-height:92vh;padding:24px 20px calc(20px + env(safe-area-inset-bottom));transform:translateY(100%);}
+    .mn-modal-overlay.show .mn-modal-card{transform:translateY(0);}
+    .mn-discount-controls{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="logo-badge"><span>Tangy&#8217;s</span></div>
+    <h1>Operations</h1>
+    <p class="sub">Sign in to take orders, manage the menu, and see what's happening live.</p>
+    <div class="field"><label>Email</label><input type="email" id="loginEmail" autocomplete="username"></div>
+    <div class="field"><label>Password</label><input type="password" id="loginPass" autocomplete="current-password"></div>
+    <button class="btn btn-brand" style="width:100%;justify-content:center;" onclick="doLogin()">Sign in</button>
+    <div class="err" id="loginErr"></div>
+  </div>
+</div>
+
+<div id="shell" style="display:none;">
+  <aside>
+    <div class="brand">
+      <div class="brand-mark">T</div>
+      <div><div class="brand-text">Tangy&#8217;s</div><div class="brand-sub">OPERATIONS</div></div>
+    </div>
+    <nav>
+      <button class="nav-item active" data-view="dashboard" onclick="switchView('dashboard')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Dashboard
+      </button>
+      <button class="nav-item" data-view="pos" onclick="switchView('pos')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+        Take Order
+      </button>
+      <button class="nav-item" data-view="orders" onclick="switchView('orders')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9l4 4v14H6z"/><path d="M9 9h6M9 13h6M9 17h4"/></svg>
+        Orders
+        <span class="nav-count" id="activeOrderCount">0</span>
+      </button>
+      <button class="nav-item" data-view="menu" onclick="switchView('menu')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+        Menu
+      </button>
+      <button class="nav-item" data-view="riders" onclick="switchView('riders')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M6 17l4-9h4l4 9M10 8h5"/></svg>
+        Riders
+      </button>
+      <button class="nav-item" data-view="reports" onclick="switchView('reports')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>
+        Reports
+      </button>
+      <div class="nav-group-label">System</div>
+      <button class="nav-item" data-view="settings" onclick="switchView('settings')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.34 1.87l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.7 1.7 0 00-1.87-.34 1.7 1.7 0 00-1 1.55V21a2 2 0 01-4 0v-.09A1.7 1.7 0 009 19.36a1.7 1.7 0 00-1.87.34l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.7 1.7 0 004.64 15a1.7 1.7 0 00-1.55-1H3a2 2 0 010-4h.09A1.7 1.7 0 004.64 9a1.7 1.7 0 00-.34-1.87l-.06-.06a2 2 0 112.83-2.83l.06.06A1.7 1.7 0 009 4.64 1.7 1.7 0 0010 3.09V3a2 2 0 014 0v.09a1.7 1.7 0 001 1.55 1.7 1.7 0 001.87-.34l.06-.06a2 2 0 112.83 2.83l-.06.06A1.7 1.7 0 0019.36 9c.1.35.28.63.55.86"/></svg>
+        Settings
+      </button>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="avatar" id="avatarInitials">?</div>
+      <div><div class="sf-name" id="whoEmail"></div><div class="sf-role">Staff</div></div>
+    </div>
+  </aside>
+
+  <div class="shell-main">
+    <div class="topbar">
+      <div>
+        <h1 id="viewTitle">Dashboard</h1>
+        <div class="sub" id="viewDate"></div>
+      </div>
+      <div class="topbar-mid">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input type="text" id="globalSearch" placeholder="Search orders or menu…" oninput="handleGlobalSearch(this.value)">
+          <span class="kbd">/</span>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <span class="live-status"><span class="live-dot" id="liveDot"></span><span id="liveLabel">Live</span></span>
+        <button class="bell-btn" title="New orders" onclick="openNotifications()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
+          <span class="bell-dot" id="bellDot"></span>
+        </button>
+        <button class="btn btn-brand" onclick="switchView('pos')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
+          New order
+        </button>
+        <button class="btn-ghost btn-sm" onclick="doLogout()">Sign out</button>
+      </div>
+    </div>
+
+    <main>
+      <!-- ================= DASHBOARD ================= -->
+      <div class="view active" id="view-dashboard">
+        <div class="stat-grid">
+          <div class="stat-card"><div class="label"><span class="stat-icon brand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span>Today&#8217;s sales</div><div class="value" id="statSales">Rs. 0</div></div>
+          <div class="stat-card"><div class="label"><span class="stat-icon info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9l4 4v14H6z"/><path d="M9 9h6M9 13h6M9 17h4"/></svg></span>Orders today</div><div class="value" id="statOrders">0</div></div>
+          <div class="stat-card"><div class="label"><span class="stat-icon gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span>Pending / preparing</div><div class="value" id="statPending">0</div></div>
+          <div class="stat-card"><div class="label"><span class="stat-icon good"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17l5-5 4 4 7-8"/><path d="M15 8h5v5"/></svg></span>Average order</div><div class="value" id="statAvg">Rs. 0</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>Today&#8217;s orders</h3><button class="btn btn-ghost btn-sm" onclick="switchView('orders')">View all</button></div>
+          <table>
+            <thead><tr><th>Order</th><th>Time</th><th>Customer</th><th>Type</th><th>Payment</th><th>Total</th><th>Status</th></tr></thead>
+            <tbody id="dashboardOrdersBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ================= TAKE ORDER (POS) ================= -->
+      <div class="view" id="view-pos">
+        <div class="pos-layout">
+          <div>
+            <div class="cat-row-pills" id="catRow"></div>
+            <div class="item-grid" id="itemGrid"></div>
+          </div>
+          <div class="ticket">
+            <div class="ticket-head">
+              <div class="type-pills">
+                <button class="type-pill active" data-type="dine_in" onclick="setOrderType('dine_in')">Dine-in</button>
+                <button class="type-pill" data-type="pickup" onclick="setOrderType('pickup')">Pickup</button>
+                <button class="type-pill" data-type="delivery" onclick="setOrderType('delivery')">Delivery</button>
+              </div>
+            </div>
+            <div class="ticket-lines" id="ticketLines"><div class="ticket-empty">Tap items to add them to this order.</div></div>
+            <div class="ticket-foot">
+              <div class="ticket-foot-scroll">
+                <div id="deliveryFields" style="display:none;">
+                  <div class="foot-row-2">
+                    <div class="foot-field"><label>Customer name</label><input type="text" id="custName" placeholder="Name"></div>
+                    <div class="foot-field"><label>Phone</label><input type="text" id="custPhone" placeholder="03xx-xxxxxxx"></div>
+                  </div>
+                  <div class="foot-field"><label>Address</label><textarea id="custAddress" rows="2" placeholder="House / street"></textarea></div>
+                  <div class="foot-row-2" style="align-items:end;">
+                    <div class="mn-checkbox-row" style="margin-bottom:8px;">
+                      <input type="checkbox" id="deliveryFeeCheck" onchange="renderTicket()">
+                      <label for="deliveryFeeCheck">Delivery fee</label>
+                    </div>
+                    <div class="foot-field"><input type="number" id="deliveryFeeAmount" placeholder="Rs. 0" oninput="renderTicket()"></div>
+                  </div>
+                </div>
+                <div id="nameOnlyField" class="foot-field"><label>Customer name (optional)</label><input type="text" id="custNameSimple" placeholder="Name"></div>
+                <div class="foot-field"><label>Discount (Rs., optional)</label><input type="number" id="discountAmount" placeholder="0" oninput="renderTicket()"></div>
+                <div class="foot-field">
+                  <label>Other charges (optional)</label>
+                  <div id="chargeRows"></div>
+                  <button class="add-charge-btn" onclick="addChargeRow()">+ Add a charge (e.g. Packing)</button>
+                </div>
+                <label style="display:block;font-size:0.64rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--gold);font-weight:700;margin-bottom:5px;">Payment</label>
+                <div class="pay-row" id="payRow">
+                  <button class="pay-pill active" data-pay="cash">Cash</button>
+                  <button class="pay-pill" data-pay="easypaisa">Easypaisa</button>
+                  <button class="pay-pill" data-pay="jazzcash">JazzCash</button>
+                </div>
+              </div>
+              <div class="divider-dash"></div>
+              <div id="ticketBreakdown"></div>
+              <div class="total-row"><span class="lbl">Total</span><span class="val" id="ticketTotal">Rs. 0</span></div>
+              <button class="btn btn-brand" style="width:100%;justify-content:center;" id="placeOrderBtn" onclick="placeOrder()">Place &amp; print</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= ORDERS ================= -->
+      <div class="view" id="view-orders">
+        <div class="status-tabs" id="statusTabs"></div>
+        <div class="panel">
+          <table>
+            <thead><tr><th>Order</th><th>Time</th><th>Type</th><th>Items</th><th>Customer</th><th>Payment</th><th>Total</th><th></th></tr></thead>
+            <tbody id="ordersBody"></tbody>
+          </table>
+          <div class="empty-state" id="ordersEmpty" style="display:none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3h9l4 4v14H6z"/><path d="M9 13h6M9 17h4"/></svg>
+            <span>No orders in this status.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= MENU ================= -->
+      <div class="view" id="view-menu">
+        <div class="mn-subtabs">
+          <button class="mn-subtab active" data-mnsub="items" onclick="switchMenuSubTab('items')">Items</button>
+          <button class="mn-subtab" data-mnsub="discounts" onclick="switchMenuSubTab('discounts')">Discounts</button>
+          <button class="mn-subtab" data-mnsub="banners" onclick="switchMenuSubTab('banners')">Homepage Banners</button>
+        </div>
+
+        <div class="mn-subpanel active" id="mnsub-items">
+          <div class="mn-section-head">
+            <h3>Menu categories &amp; items</h3>
+            <button class="btn btn-brand btn-sm" onclick="openCatModal()">+ New category</button>
+          </div>
+          <p class="mn-section-help">Categories are the sections customers see on the site (Burgers, Wraps, Deals...). Click a category to open it and manage its items. Photos you upload here are what staff see on Take Order too.</p>
+          <div id="catList"></div>
+          <div id="catEmptyState" class="empty-state" style="display:none;">No categories yet — add your first one above.</div>
+        </div>
+
+        <div class="mn-subpanel" id="mnsub-discounts" style="display:none;">
+          <p class="mn-section-help">Put a whole category on sale at once, or pick specific items. This sets each item's "was" price automatically — the site shows the strikethrough and % off badge on its own.</p>
+          <div class="mn-discount-controls">
+            <div class="field">
+              <label>Category</label>
+              <select id="discCategorySelect" onchange="renderDiscountItems()"><option value="__all__">All categories</option></select>
+            </div>
+            <div class="field">
+              <label>Discount</label>
+              <div class="mn-discount-presets" id="discPresets">
+                <button class="mn-preset-btn" data-pct="10" onclick="setDiscPreset(10)">10%</button>
+                <button class="mn-preset-btn active" data-pct="15" onclick="setDiscPreset(15)">15%</button>
+                <button class="mn-preset-btn" data-pct="20" onclick="setDiscPreset(20)">20%</button>
+                <input type="number" id="discPctInput" placeholder="Custom %" style="width:100px;" oninput="clearDiscPreset()">
+              </div>
+            </div>
+          </div>
+          <div class="mn-discount-select-all"><label><input type="checkbox" id="discSelectAll" onchange="toggleSelectAllDiscount(this.checked)"> Select all items shown below</label></div>
+          <div id="discountItemList"></div>
+          <div class="mn-discount-actions">
+            <button class="btn btn-brand" onclick="applyBulkDiscount()">Apply discount to selected</button>
+            <button class="btn-ghost" onclick="removeBulkDiscount()">Remove discount from selected</button>
+          </div>
+        </div>
+
+        <div class="mn-subpanel" id="mnsub-banners" style="display:none;">
+          <div class="mn-section-head">
+            <h3>Homepage banners</h3>
+            <button class="btn btn-brand btn-sm" onclick="openBannerModal()">+ New banner</button>
+          </div>
+          <p class="mn-section-help">The rotating photos at the top of the site — good for a deal, a new item, or just showing off the place. Aim for wide photos, roughly 1600&times;800px.</p>
+          <div id="bannerList"></div>
+          <div id="bannerEmptyState" class="empty-state" style="display:none;">No banners yet — add one above.</div>
+        </div>
+      </div>
+
+      <!-- ================= RIDERS ================= -->
+      <div class="view" id="view-riders">
+        <div class="mn-section-head">
+          <h3>Riders</h3>
+          <button class="btn btn-brand btn-sm" onclick="openRiderModal()">+ Add rider</button>
+        </div>
+        <p class="mn-section-help">When you mark a delivery order "Ready — send with rider", the app picks whoever's free automatically if there's only one option, or asks you to pick if more than one rider is free.</p>
+        <div class="panel">
+          <table>
+            <thead><tr><th>Name</th><th>Phone</th><th>Status</th><th></th></tr></thead>
+            <tbody id="ridersBody"></tbody>
+          </table>
+          <div class="empty-state" id="ridersEmpty" style="display:none;">No riders yet — add one above.</div>
+        </div>
+      </div>
+
+      <!-- ================= REPORTS ================= -->
+      <div class="view" id="view-reports">
+        <div class="stat-grid">
+          <div class="stat-card"><div class="label">Sales today</div><div class="value" id="repSales">Rs. 0</div></div>
+          <div class="stat-card"><div class="label">Orders today</div><div class="value" id="repOrders">0</div></div>
+          <div class="stat-card"><div class="label">Average order</div><div class="value" id="repAvg">Rs. 0</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>Best sellers today</h3></div>
+          <table>
+            <thead><tr><th>Item</th><th>Qty sold</th><th>Revenue</th></tr></thead>
+            <tbody id="bestSellersBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ================= SETTINGS ================= -->
+      <div class="view" id="view-settings">
+        <div class="mn-section-head"><h3>Site settings</h3></div>
+        <p class="mn-section-help">A few site-wide things that don't belong to any one item.</p>
+        <div class="mn-settings-card">
+          <div class="field"><label>Announcement bar text</label><input type="text" id="setAnnounce" placeholder="e.g. Now taking orders through the website!"></div>
+          <div class="mn-settings-hint">Shows in the thin red bar at the very top of the site.</div>
+
+          <div class="field"><label>WhatsApp number (for support / fallback)</label><input type="text" id="setWhatsapp" placeholder="923181450075"></div>
+          <div class="mn-settings-hint">Country code, no + or spaces. Used if a website order fails to save, so the customer can still reach you.</div>
+
+          <div class="field"><label>Tax rate (%)</label><input type="number" id="setTax" placeholder="0"></div>
+          <div class="mn-settings-hint">Leave at 0 if you don't want a tax line shown at checkout.</div>
+
+          <div class="field"><label>Promo code</label><input type="text" id="setPromoCode" placeholder="e.g. TANGY10"></div>
+          <div class="field"><label>Promo discount (%)</label><input type="number" id="setPromoPct" placeholder="0"></div>
+          <div class="mn-settings-hint">Leave the code blank to turn promo codes off entirely.</div>
+
+          <div class="mn-checkbox-row"><input type="checkbox" id="setDeliveryFeeEnabled"><label for="setDeliveryFeeEnabled">Charge a delivery fee on delivery orders</label></div>
+          <div class="field"><label>Delivery fee (Rs.)</label><input type="number" id="setDeliveryFeeAmount" placeholder="0"></div>
+          <div class="mn-settings-hint">Applies automatically on the website. On Take Order, staff can still add or remove it per order.</div>
+
+          <button class="btn btn-brand" style="width:100%;justify-content:center;" onclick="saveSiteSettings()">Save settings</button>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Category modal -->
+<div class="mn-modal-overlay" id="catModalOverlay">
+  <div class="mn-modal-card">
+    <h3 id="catModalTitle">New category</h3>
+    <div class="field"><label>Name</label><input type="text" id="catName" placeholder="e.g. Burgers"></div>
+    <div class="field">
+      <label>Display style</label>
+      <select id="catStyle"><option value="grid">Grid cards (normal menu items)</option><option value="deal">Deal cards (wider, for combos)</option></select>
+    </div>
+    <div class="field"><label>Order (lower shows first)</label><input type="number" id="catOrder" value="0"></div>
+    <div class="mn-modal-foot">
+      <button class="btn-ghost" onclick="closeCatModal()">Cancel</button>
+      <button class="btn btn-brand" onclick="saveCategory()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Item modal -->
+<div class="mn-modal-overlay" id="itemModalOverlay">
+  <div class="mn-modal-card">
+    <h3 id="itemModalTitle">New item</h3>
+    <div class="mn-upload-row">
+      <div class="mn-upload-preview" id="itPhotoPreview">&#128247;</div>
+      <div style="flex:1;">
+        <button class="mn-upload-btn" onclick="document.getElementById('itPhotoFile').click()">Upload photo</button>
+        <input type="file" id="itPhotoFile" accept="image/*" style="display:none;" onchange="handleItemPhotoUpload(this)">
+        <div class="mn-upload-status" id="itPhotoStatus"></div>
+      </div>
+    </div>
+    <div class="field"><label>Name</label><input type="text" id="itName" placeholder="e.g. Grill Burger"></div>
+    <div class="field"><label>Description</label><textarea id="itDesc" rows="2" placeholder="Short line customers see on the card"></textarea></div>
+    <div class="mn-price-row">
+      <div class="field"><label>Price (Rs.)</label><input type="number" id="itPrice" placeholder="450"></div>
+      <div class="field"><label>Was-price (optional)</label><input type="number" id="itOriginalPrice" placeholder="e.g. 550"></div>
+    </div>
+    <div class="mn-settings-hint" style="margin-top:-8px;">Fill in "Was-price" to show a sale — the site strikes it through and shows a % off badge automatically.</div>
+    <div class="field"><label>Tag</label><input type="text" id="itTag" placeholder="e.g. Classic, Wrap, Deal"></div>
+    <div class="field"><label>Order (lower shows first)</label><input type="number" id="itOrder" value="0"></div>
+    <div class="field">
+      <label>Add-ons (optional extras customers can tap on, e.g. Extra Cheese)</label>
+      <div id="addonRows"></div>
+      <button class="mn-upload-btn" style="margin-top:4px;" onclick="addAddonRow()">+ Add an add-on</button>
+    </div>
+    <div class="mn-checkbox-row"><input type="checkbox" id="itSig"><label for="itSig">Signature item (highlighted style)</label></div>
+    <div class="mn-checkbox-row"><input type="checkbox" id="itBest"><label for="itBest">Best Seller badge</label></div>
+    <div class="mn-checkbox-row"><input type="checkbox" id="itNew"><label for="itNew">New badge</label></div>
+    <div class="mn-checkbox-row"><input type="checkbox" id="itPlaceholder"><label for="itPlaceholder">Price is a placeholder (shows a * on the site)</label></div>
+    <div class="mn-modal-foot">
+      <button class="btn-ghost" onclick="closeItemModal()">Cancel</button>
+      <button class="btn btn-brand" onclick="saveItem()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Banner modal -->
+<div class="mn-modal-overlay" id="bannerModalOverlay">
+  <div class="mn-modal-card">
+    <h3 id="bannerModalTitle">New banner</h3>
+    <div class="mn-upload-row">
+      <div class="mn-upload-preview" id="bnPhotoPreview" style="width:90px;height:60px;">&#128247;</div>
+      <div style="flex:1;">
+        <button class="mn-upload-btn" onclick="document.getElementById('bnPhotoFile').click()">Upload photo</button>
+        <input type="file" id="bnPhotoFile" accept="image/*" style="display:none;" onchange="handleBannerPhotoUpload(this)">
+        <div class="mn-upload-status" id="bnPhotoStatus"></div>
+      </div>
+    </div>
+    <div class="field"><label>Title</label><input type="text" id="bnTitle" placeholder="e.g. Tangy's Box — feeds the table."></div>
+    <div class="field"><label>Subtitle</label><input type="text" id="bnSubtitle" placeholder="A short supporting line"></div>
+    <div class="field"><label>Badge text (optional)</label><input type="text" id="bnBadge" placeholder="e.g. Rs. 2,299 or 20% OFF"></div>
+    <div class="field"><label>Order (lower shows first)</label><input type="number" id="bnOrder" value="0"></div>
+    <div class="mn-modal-foot">
+      <button class="btn-ghost" onclick="closeBannerModal()">Cancel</button>
+      <button class="btn btn-brand" onclick="saveBanner()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Item add-on picker (shown when the tapped item has add-ons) -->
+<div class="mn-modal-overlay" id="orderAddonModalOverlay">
+  <div class="mn-modal-card">
+    <h3 id="orderAddonItemName">Item</h3>
+    <div id="orderAddonList"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:16px 0 4px;">
+      <span style="font-size:0.84rem;font-weight:600;">Quantity</span>
+      <div class="stepper"><button onclick="adjustAddonPickerQty(-1)">&minus;</button><span id="orderAddonQty">1</span><button onclick="adjustAddonPickerQty(1)">+</button></div>
+    </div>
+    <div class="mn-modal-foot">
+      <button class="btn-ghost" onclick="closeOrderAddonModal()">Cancel</button>
+      <button class="btn btn-brand" onclick="confirmAddonAdd()">Add &mdash; <span id="orderAddonTotal">Rs. 0</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- Rider modal -->
+<div class="mn-modal-overlay" id="riderModalOverlay">
+  <div class="mn-modal-card">
+    <h3 id="riderModalTitle">New rider</h3>
+    <div class="field"><label>Name</label><input type="text" id="riderName" placeholder="e.g. Bilal Ahmed"></div>
+    <div class="field"><label>Phone</label><input type="text" id="riderPhone" placeholder="03xx-xxxxxxx"></div>
+    <div class="mn-checkbox-row"><input type="checkbox" id="riderActive" checked><label for="riderActive">Active (available to assign)</label></div>
+    <div class="mn-modal-foot">
+      <button class="btn-ghost" onclick="closeRiderModal()">Cancel</button>
+      <button class="btn btn-brand" onclick="saveRider()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Rider picker (shown when more than one rider is free) -->
+<div class="mn-modal-overlay" id="riderPickerOverlay">
+  <div class="mn-modal-card">
+    <h3>Who's taking this one?</h3>
+    <p class="mn-section-help" id="riderPickerNote"></p>
+    <div id="riderPickerList"></div>
+    <div class="mn-modal-foot">
+      <button class="btn-ghost" onclick="closeRiderPicker()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ====== Same Supabase project as the website ======
+const SUPABASE_URL = 'https://sfsggkofnadleawlelih.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmc2dna29mbmFkbGVhd2xlbGloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3MzUxNTgsImV4cCI6MjEwMzMxMTE1OH0.3Bhdhp1QMbB9iJIben36y9DNxyaxgAlSssongOQJ7Qs';
+const PRINT_BRIDGE_URL = 'http://localhost:9100/print';
+const STORAGE_BUCKET = 'site-images';
+// ====================================================
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const MENU_CACHE_KEY = 'tangys_ops_menu_cache';
+const QUEUE_KEY = 'tangys_ops_offline_queue';
+
+let categories = [], items = [], banners = [], settings = {}, riders = [];
+let orders = []; // active/recent orders (Dashboard + Orders tab)
+let realtimeChannel = null;
+let searchQuery = '';
+let flashOrderId = null;
+
+function money(n){ return 'Rs. ' + Math.round(Number(n)||0).toLocaleString(); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function showToast(msg, isErr){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isErr ? ' err' : '');
+  setTimeout(()=>t.classList.remove('show'), 2400);
+}
+
+document.getElementById('viewDate').textContent = new Date().toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric'});
+
+/* ---------------- Auth ---------------- */
+async function doLogin(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginErr');
+  errEl.textContent = '';
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if(error){ errEl.textContent = 'Sign-in failed: ' + error.message; return; }
+  showApp(data.user);
+}
+async function doLogout(){
+  if(realtimeChannel) sb.removeChannel(realtimeChannel);
+  await sb.auth.signOut();
+  document.getElementById('shell').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+function showApp(user){
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('shell').style.display = 'block';
+  document.getElementById('whoEmail').textContent = user.email;
+  document.getElementById('avatarInitials').textContent = (user.email||'??').slice(0,2).toUpperCase();
+  boot();
+}
+(async function checkSession(){
+  const { data } = await sb.auth.getSession();
+  if(data.session){ showApp(data.session.user); }
+})();
+
+/* ---------------- Boot ---------------- */
+async function boot(){
+  await loadMenuAdminData();
+  await loadActiveOrders();
+  renderCatRow();
+  renderItemGrid();
+  renderDashboard();
+  subscribeRealtime();
+  updateConnectionUI();
+  trySyncQueue();
+}
+window.addEventListener('online', () => { updateConnectionUI(); trySyncQueue(); });
+window.addEventListener('offline', updateConnectionUI);
+function updateConnectionUI(){
+  const online = navigator.onLine;
+  document.getElementById('liveDot').classList.toggle('off', !online);
+  document.getElementById('liveLabel').textContent = online ? 'Live' : 'Offline';
+}
+
+/* ---------------- Load menu + admin data (cached for offline POS) ---------------- */
+async function loadMenuAdminData(){
+  try{
+    const [{data:cats,error:e1}, {data:its,error:e2}, {data:bnrs,error:e3}, {data:sett,error:e4}, {data:rds,error:e5}] = await Promise.all([
+      sb.from('categories').select('*').order('sort_order'),
+      sb.from('items').select('*').order('sort_order'),
+      sb.from('banners').select('*').order('sort_order'),
+      sb.from('site_settings').select('*').eq('id','main').maybeSingle(),
+      sb.from('riders').select('*').order('name'),
+    ]);
+    if(e1) throw e1; if(e2) throw e2; if(e3) throw e3; if(e4) throw e4; if(e5) throw e5;
+    categories = cats || []; items = its || []; banners = bnrs || []; riders = rds || [];
+    settings = sett || { id:'main', announcement_text:'', tax_rate:0, promo_code:'', promo_discount_percent:0, whatsapp_number:'923181450075', delivery_fee_enabled:false, delivery_fee_amount:0 };
+    localStorage.setItem(MENU_CACHE_KEY, JSON.stringify({categories, items}));
+  }catch(err){
+    console.warn('Menu fetch failed, using cache:', err.message);
+    const cached = localStorage.getItem(MENU_CACHE_KEY);
+    if(cached){ const parsed = JSON.parse(cached); categories = parsed.categories; items = parsed.items; }
+    else showToast('No internet and no cached menu yet — connect once before going offline.', true);
+    banners = []; riders = riders || []; settings = settings.id ? settings : { id:'main' };
+  }
+  renderMenuTab();
+  renderSettingsTab();
+  renderRidersTab();
+}
+function isVirtualBestseller(cat){ return cat.virtual === 'bestseller' || cat.id === 'best'; }
+
+/* ================================================================
+   TAKE ORDER (POS)
+   ================================================================ */
+let activeCat = null;
+let orderType = 'dine_in';
+let cart = {};
+
+function renderCatRow(){
+  if(!activeCat && categories.length) activeCat = categories[0].id;
+  document.getElementById('catRow').innerHTML = categories.map(c =>
+    `<button class="cat-pill ${c.id===activeCat?'active':''}" onclick="selectCat('${c.id}')">${esc(c.name)}</button>`
+  ).join('');
+}
+function selectCat(id){ activeCat = id; renderCatRow(); renderItemGrid(); }
+function itemsForCategory(cat){
+  return isVirtualBestseller(cat) ? items.filter(i=>i.is_bestseller) : items.filter(i=>i.category_id===cat.id);
+}
+function renderItemGrid(){
+  const cat = categories.find(c=>c.id===activeCat);
+  let list = cat ? itemsForCategory(cat) : [];
+  if(searchQuery) list = items.filter(i=>i.name.toLowerCase().includes(searchQuery));
+  const grid = document.getElementById('itemGrid');
+  if(!list.length){
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><span>${searchQuery ? 'No items match &#8220;'+esc(searchQuery)+'&#8221;.' : 'No items in this category yet.'}</span></div>`;
+    return;
+  }
+  grid.innerHTML = list.map(i => `
+    <button class="item-card" onclick="addToCart('${i.id}')">
+      ${i.image_url ? `<img class="item-photo" src="${i.image_url}" alt="${esc(i.name)}" loading="lazy">` : `<div class="item-photo-ph">&#127828;</div>`}
+      <div class="item-body">
+        <div class="item-name">${esc(i.name)}</div>
+        <div class="item-price">${money(i.price)}</div>
+      </div>
+    </button>
+  `).join('');
+}
+function addonSum(addons){ return (addons||[]).reduce((s,a)=>s+Number(a.price||0),0); }
+function lineKeyFor(itemId, addons){
+  return itemId + ((addons&&addons.length) ? '::' + addons.map(a=>a.name).sort().join('|') : '');
+}
+function addToCart(id){
+  const item = items.find(i=>i.id===id);
+  if(!item) return;
+  const addons = Array.isArray(item.addons) ? item.addons.filter(a=>a && a.name) : [];
+  if(addons.length){ openAddonPicker(id); return; }
+  addLineToCart(id, [], 1);
+}
+function addLineToCart(itemId, addons, qty){
+  const item = items.find(i=>i.id===itemId);
+  if(!item) return;
+  const key = lineKeyFor(itemId, addons);
+  if(cart[key]){ cart[key].qty += qty; }
+  else{
+    cart[key] = { itemId, name:item.name, basePrice:item.price, addons: addons||[], unitPrice: item.price + addonSum(addons), img:item.image_url, qty };
+  }
+  renderTicket();
+}
+function incLine(key){ if(cart[key]){ cart[key].qty += 1; renderTicket(); } }
+function decLine(key){
+  if(!cart[key]) return;
+  cart[key].qty -= 1;
+  if(cart[key].qty<=0) delete cart[key];
+  renderTicket();
+}
+
+/* ---------- Add-on picker modal ---------- */
+let pendingAddonItemId = null, pendingAddonSelected = [], pendingAddonQty = 1;
+function openAddonPicker(itemId){
+  const item = items.find(i=>i.id===itemId);
+  if(!item) return;
+  pendingAddonItemId = itemId;
+  pendingAddonSelected = [];
+  pendingAddonQty = 1;
+  document.getElementById('orderAddonItemName').textContent = item.name;
+  document.getElementById('orderAddonQty').textContent = pendingAddonQty;
+  renderAddonPickerList();
+  document.getElementById('orderAddonModalOverlay').classList.add('show');
+}
+function renderAddonPickerList(){
+  const item = items.find(i=>i.id===pendingAddonItemId);
+  const addons = (item && Array.isArray(item.addons)) ? item.addons.filter(a=>a && a.name) : [];
+  document.getElementById('orderAddonList').innerHTML = addons.map((a,i) => {
+    const selected = pendingAddonSelected.some(s=>s.name===a.name);
+    return `<div class="addon-pick-row">
+      <span class="addon-pick-name">${esc(a.name)}</span>
+      <span class="addon-pick-price">+${money(a.price)}</span>
+      <button class="addon-pick-btn ${selected?'active':''}" onclick="toggleOrderAddon(${i})">${selected?'&#10003;':'+'}</button>
+    </div>`;
+  }).join('');
+  const unit = (item ? item.price : 0) + addonSum(pendingAddonSelected);
+  document.getElementById('orderAddonTotal').textContent = money(unit * pendingAddonQty);
+}
+function toggleOrderAddon(i){
+  const item = items.find(x=>x.id===pendingAddonItemId);
+  const addons = (item && Array.isArray(item.addons)) ? item.addons.filter(a=>a && a.name) : [];
+  const addon = addons[i];
+  if(!addon) return;
+  const idx = pendingAddonSelected.findIndex(a=>a.name===addon.name);
+  if(idx>=0) pendingAddonSelected.splice(idx,1);
+  else pendingAddonSelected.push(addon);
+  renderAddonPickerList();
+}
+function adjustAddonPickerQty(delta){
+  pendingAddonQty = Math.max(1, pendingAddonQty + delta);
+  document.getElementById('orderAddonQty').textContent = pendingAddonQty;
+  renderAddonPickerList();
+}
+function closeOrderAddonModal(){ document.getElementById('orderAddonModalOverlay').classList.remove('show'); }
+function confirmAddonAdd(){
+  addLineToCart(pendingAddonItemId, pendingAddonSelected.slice(), pendingAddonQty);
+  closeOrderAddonModal();
+}
+
+/* ---------- Other (named) charges ---------- */
+let extraCharges = [];
+function renderChargeRows(){
+  document.getElementById('chargeRows').innerHTML = extraCharges.map((c,i) => `
+    <div class="charge-row">
+      <input type="text" value="${String(c.name).replace(/"/g,'&quot;')}" placeholder="e.g. Packing" onchange="updateChargeRow(${i},'name',this.value)">
+      <input type="number" value="${c.amount}" placeholder="Rs." oninput="updateChargeRow(${i},'amount',this.value)">
+      <button class="charge-remove-btn" onclick="removeChargeRow(${i})">&times;</button>
+    </div>
+  `).join('');
+}
+function addChargeRow(){ extraCharges.push({name:'', amount:0}); renderChargeRows(); }
+function updateChargeRow(i, field, value){
+  if(!extraCharges[i]) return;
+  extraCharges[i][field] = field==='amount' ? (Number(value)||0) : value;
+  renderTicket();
+}
+function removeChargeRow(i){ extraCharges.splice(i,1); renderChargeRows(); renderTicket(); }
+function currentExtraChargesTotal(){ return extraCharges.reduce((s,c)=>s+(Number(c.amount)||0),0); }
+function namedExtraCharges(){ return extraCharges.filter(c=>c.name && c.name.trim()); }
+
+function currentDiscount(){ return Math.max(0, Number(document.getElementById('discountAmount').value) || 0); }
+function currentDeliveryFee(){
+  if(orderType !== 'delivery') return 0;
+  if(!document.getElementById('deliveryFeeCheck').checked) return 0;
+  return Math.max(0, Number(document.getElementById('deliveryFeeAmount').value) || 0);
+}
+function renderTicket(){
+  const lines = Object.values(cart);
+  const wrap = document.getElementById('ticketLines');
+  wrap.innerHTML = lines.length ? Object.entries(cart).map(([key,l]) => `
+    <div class="tline">
+      ${l.img ? `<img src="${l.img}" alt="">` : `<div class="tline-ph">&#127828;</div>`}
+      <div style="flex:1;min-width:0;">
+        <span class="tline-name">${esc(l.name)}</span>
+        ${l.addons && l.addons.length ? `<div class="tline-addons">+ ${l.addons.map(a=>esc(a.name)).join(', ')}</div>` : ''}
+      </div>
+      <div class="stepper"><button onclick="decLine('${key}')">&minus;</button><span>${l.qty}</span><button onclick="incLine('${key}')">+</button></div>
+      <span class="tline-price mono">${money(l.unitPrice*l.qty)}</span>
+    </div>
+  `).join('') : '<div class="ticket-empty">Tap items to add them to this order.</div>';
+
+  const subtotal = lines.reduce((s,l)=>s+l.unitPrice*l.qty,0);
+  const discount = currentDiscount();
+  const deliveryFee = currentDeliveryFee();
+  const chargesTotal = namedExtraCharges().reduce((s,c)=>s+(Number(c.amount)||0),0);
+  const total = Math.max(0, subtotal - discount + deliveryFee + chargesTotal);
+
+  const rows = [];
+  if(discount>0) rows.push(`<div class="ticket-subrow"><span>Discount</span><span class="mono">&minus;${money(discount)}</span></div>`);
+  namedExtraCharges().forEach(c => rows.push(`<div class="ticket-subrow"><span>${esc(c.name)}</span><span class="mono">${money(c.amount)}</span></div>`));
+  if(deliveryFee>0) rows.push(`<div class="ticket-subrow"><span>Delivery fee</span><span class="mono">${money(deliveryFee)}</span></div>`);
+  document.getElementById('ticketBreakdown').innerHTML = rows.join('');
+  document.getElementById('ticketTotal').textContent = money(total);
+}
+function setOrderType(type){
+  orderType = type;
+  document.querySelectorAll('.type-pill').forEach(b=>b.classList.toggle('active', b.dataset.type===type));
+  document.getElementById('deliveryFields').style.display = type==='delivery' ? 'block' : 'none';
+  document.getElementById('nameOnlyField').style.display = type==='delivery' ? 'none' : 'block';
+  if(type==='delivery'){
+    document.getElementById('deliveryFeeCheck').checked = !!settings.delivery_fee_enabled;
+    document.getElementById('deliveryFeeAmount').value = settings.delivery_fee_amount || 0;
+  }
+  renderTicket();
+}
+document.getElementById('payRow').addEventListener('click', e => {
+  const btn = e.target.closest('.pay-pill'); if(!btn) return;
+  document.querySelectorAll('.pay-pill').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+});
+
+/* ---------------- Offline queue ---------------- */
+function getQueue(){ return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]'); }
+function setQueue(q){ localStorage.setItem(QUEUE_KEY, JSON.stringify(q)); }
+async function trySyncQueue(){
+  if(!navigator.onLine) return;
+  let queue = getQueue();
+  if(!queue.length) return;
+  const remaining = [];
+  for(const entry of queue){
+    try{ await saveOrderToSupabase(entry.orderPayload, entry.itemsPayload); }
+    catch(err){ remaining.push(entry); }
+  }
+  setQueue(remaining);
+  if(remaining.length < queue.length) showToast(`Synced ${queue.length-remaining.length} queued order(s).`);
+}
+setInterval(trySyncQueue, 30000);
+
+async function saveOrderToSupabase(orderPayload, itemsPayload){
+  const { data: orderRow, error: orderErr } = await sb.from('orders').insert(orderPayload).select().single();
+  if(orderErr) throw orderErr;
+  const rows = itemsPayload.map(i => ({ ...i, order_id: orderRow.id }));
+  const { error: itemsErr } = await sb.from('order_items').insert(rows);
+  if(itemsErr) throw itemsErr;
+  return orderRow;
+}
+
+/* ---------------- Place & print ---------------- */
+async function placeOrder(){
+  const lines = Object.values(cart);
+  if(!lines.length){ showToast('Add at least one item first.', true); return; }
+  const paymentMethod = document.querySelector('.pay-pill.active')?.dataset.pay || 'cash';
+  let customerName, customerPhone, deliveryAddress;
+  if(orderType === 'delivery'){
+    customerName = document.getElementById('custName').value.trim();
+    customerPhone = document.getElementById('custPhone').value.trim();
+    deliveryAddress = document.getElementById('custAddress').value.trim();
+    if(!customerName || !customerPhone || !deliveryAddress){
+      showToast('Delivery orders need a name, phone, and address.', true);
+      return;
+    }
+  }else{
+    customerName = document.getElementById('custNameSimple').value.trim();
+  }
+  const subtotal = lines.reduce((s,l)=>s+l.unitPrice*l.qty,0);
+  const discount = currentDiscount();
+  const deliveryFee = currentDeliveryFee();
+  const charges = namedExtraCharges();
+  const chargesTotal = charges.reduce((s,c)=>s+(Number(c.amount)||0),0);
+  const total = Math.max(0, subtotal - discount + deliveryFee + chargesTotal);
+  const orderPayload = {
+    order_type: orderType, source:'pos', payment_method: paymentMethod, payment_confirmed:false,
+    customer_name: customerName||null, customer_phone: customerPhone||null, delivery_address: deliveryAddress||null,
+    subtotal, discount, delivery_fee: deliveryFee, extra_charges: charges, total
+  };
+  const itemsPayload = lines.map(l => ({ item_id:l.itemId, item_name:l.name, unit_price:l.unitPrice, quantity:l.qty, addons:l.addons||[], line_total:l.unitPrice*l.qty }));
+
+  const btn = document.getElementById('placeOrderBtn');
+  btn.disabled = true;
+  await printReceipt({ orderType, paymentMethod, customerName, customerPhone, deliveryAddress, lines, subtotal, discount, deliveryFee, charges, total });
+
+  try{
+    if(!navigator.onLine) throw new Error('offline');
+    const orderRow = await saveOrderToSupabase(orderPayload, itemsPayload);
+    const originalLabel = btn.innerHTML;
+    btn.classList.add('success'); btn.innerHTML = '&#10003; Sent to kitchen';
+    document.querySelector('.ticket').classList.add('flash-success');
+    setTimeout(()=>{ btn.classList.remove('success'); btn.innerHTML = originalLabel; document.querySelector('.ticket').classList.remove('flash-success'); }, 1200);
+    showToast(`Order #${orderRow.order_number} saved.`);
+    loadActiveOrders().then(()=>{ renderDashboard(); if(currentView()==='orders') renderOrdersTab(); });
+  }catch(err){
+    const queue = getQueue();
+    queue.push({ orderPayload, itemsPayload, queuedAt:new Date().toISOString() });
+    setQueue(queue);
+    showToast('Saved locally — will sync once you\'re back online.');
+  }
+  cart = {}; extraCharges = []; renderTicket(); renderChargeRows();
+  document.getElementById('custNameSimple').value = '';
+  document.getElementById('discountAmount').value = '';
+  if(orderType==='delivery'){
+    document.getElementById('custName').value=''; document.getElementById('custPhone').value=''; document.getElementById('custAddress').value='';
+    document.getElementById('deliveryFeeCheck').checked = !!settings.delivery_fee_enabled;
+    document.getElementById('deliveryFeeAmount').value = settings.delivery_fee_amount || 0;
+  }
+  renderTicket();
+  btn.disabled = false;
+}
+
+function buildReceiptText({ orderType, paymentMethod, customerName, customerPhone, deliveryAddress, lines, subtotal, discount, deliveryFee, charges, total }){
+  const rows = [];
+  rows.push("Tangy's");
+  rows.push(new Date().toLocaleString());
+  rows.push('Type: ' + orderType.replace('_',' '));
+  if(customerName) rows.push('Customer: ' + customerName);
+  if(customerPhone) rows.push('Phone: ' + customerPhone);
+  if(deliveryAddress) rows.push('Address: ' + deliveryAddress);
+  rows.push('------------------------------');
+  lines.forEach(l => {
+    rows.push(`${l.qty}x ${l.name}`.padEnd(24) + money(l.unitPrice*l.qty));
+    (l.addons||[]).forEach(a => rows.push(`   + ${a.name}`));
+  });
+  rows.push('------------------------------');
+  if(discount>0) rows.push(('Discount').padEnd(24) + '-' + money(discount));
+  (charges||[]).forEach(c => rows.push((c.name).padEnd(24) + money(c.amount)));
+  if(deliveryFee>0) rows.push(('Delivery fee').padEnd(24) + money(deliveryFee));
+  rows.push(('TOTAL').padEnd(24) + money(total));
+  rows.push('Payment: ' + paymentMethod);
+  return rows.join('\n');
+}
+async function printReceipt(orderInfo){
+  const text = buildReceiptText(orderInfo);
+  try{
+    const controller = new AbortController();
+    const timeout = setTimeout(()=>controller.abort(), 2000);
+    const res = await fetch(PRINT_BRIDGE_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text}), signal: controller.signal });
+    clearTimeout(timeout);
+    if(!res.ok) throw new Error('bridge returned ' + res.status);
+  }catch(err){ printViaBrowser(text); }
+}
+function printViaBrowser(text){
+  const w = window.open('', '_blank', 'width=320,height=600');
+  w.document.write(`<pre style="font-family:monospace;font-size:13px;white-space:pre-wrap;">${esc(text)}</pre>`);
+  w.document.close(); w.focus(); w.print();
+}
+
+/* ================================================================
+   ORDERS + DASHBOARD (live)
+   ================================================================ */
+const STATUS_LABELS = { pending:'Pending', preparing:'Preparing', ready:'Ready for pickup', out_for_delivery:'Out for delivery', completed:'Completed', cancelled:'Cancelled' };
+const STATUS_ORDER = ['pending','preparing','ready','out_for_delivery','completed','cancelled'];
+let activeStatus = 'pending';
+
+async function loadActiveOrders(){
+  const since = new Date(Date.now() - 24*60*60*1000).toISOString();
+  const { data, error } = await sb.from('orders').select('*').gte('created_at', since).order('created_at', { ascending:false });
+  if(error){ showToast('Could not load orders: ' + error.message, true); return; }
+  orders = data || [];
+  const ids = orders.map(o=>o.id);
+  window.__orderItemsMap = {};
+  if(ids.length){
+    const { data: itemRows } = await sb.from('order_items').select('*').in('order_id', ids);
+    (itemRows||[]).forEach(it => { (window.__orderItemsMap[it.order_id] = window.__orderItemsMap[it.order_id]||[]).push(it); });
+  }
+}
+function subscribeRealtime(){
+  realtimeChannel = sb.channel('orders-live')
+    .on('postgres_changes', { event:'INSERT', schema:'public', table:'orders' }, payload => {
+      flashOrderId = payload.new.id;
+      loadActiveOrders().then(()=>{
+        renderDashboard();
+        if(currentView()==='orders') renderOrdersTab();
+        showToast(`New order #${payload.new.order_number} came in.`);
+        document.getElementById('bellDot').classList.add('show');
+        setTimeout(()=>{ flashOrderId=null; }, 1700);
+      });
+    })
+    .on('postgres_changes', { event:'UPDATE', schema:'public', table:'orders' }, () => {
+      loadActiveOrders().then(()=>{ renderDashboard(); if(currentView()==='orders') renderOrdersTab(); });
+    })
+    .subscribe();
+}
+function currentView(){ return document.querySelector('.nav-item.active')?.dataset.view; }
+function clearBell(){ document.getElementById('bellDot').classList.remove('show'); }
+function openNotifications(){ switchView('orders'); }
+
+function renderDashboard(){
+  const counted = orders.filter(o=>o.status!=='cancelled');
+  const total = counted.reduce((s,o)=>s+Number(o.total||0),0);
+  const pendingCount = counted.filter(o=>['pending','preparing'].includes(o.status)).length;
+  document.getElementById('statSales').textContent = money(total);
+  document.getElementById('statOrders').textContent = counted.length;
+  document.getElementById('statPending').textContent = pendingCount;
+  document.getElementById('statAvg').textContent = money(counted.length?total/counted.length:0);
+  document.getElementById('activeOrderCount').textContent = pendingCount;
+  document.getElementById('dashboardOrdersBody').innerHTML = counted.slice(0,6).map(o => `
+    <tr class="${o.id===flashOrderId?'row-new':''}">
+      <td class="order-id">#${o.order_number}</td>
+      <td class="mono" style="color:var(--muted);">${new Date(o.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</td>
+      <td>${esc(o.customer_name)||'&mdash;'}</td>
+      <td><span class="pill">${o.order_type.replace('_',' ')}</span></td>
+      <td>${o.payment_method}</td>
+      <td class="mono">${money(o.total)}</td>
+      <td><span class="badge badge-${o.status}">${STATUS_LABELS[o.status]}</span></td>
+    </tr>
+  `).join('');
+}
+
+function actionForStatus(o){
+  if(o.status==='pending') return { label:'Start preparing', next:'preparing' };
+  if(o.status==='preparing') return o.order_type==='delivery' ? { label:'Ready — send with rider', next:'out_for_delivery', viaRider:true } : { label:'Mark ready', next:'ready' };
+  if(o.status==='ready') return { label:'Mark completed', next:'completed' };
+  if(o.status==='out_for_delivery') return { label:'Mark delivered', next:'completed' };
+  return null;
+}
+function canCancel(o){ return ['pending','preparing','ready'].includes(o.status); }
+function riderNameFor(o){
+  if(!o.rider_id) return null;
+  const r = riders.find(x=>x.id===o.rider_id);
+  return r ? r.name : null;
+}
+
+function renderStatusTabs(){
+  document.getElementById('statusTabs').innerHTML = STATUS_ORDER.map(s => {
+    const count = orders.filter(o=>o.status===s).length;
+    return `<button class="status-tab ${s===activeStatus?'active':''}" onclick="selectStatus('${s}')">${STATUS_LABELS[s]} <span class="n">${count}</span></button>`;
+  }).join('');
+}
+function selectStatus(s){ activeStatus = s; renderStatusTabs(); renderOrdersTable(); }
+function renderOrdersTable(){
+  let list = orders.filter(o=>o.status===activeStatus);
+  if(searchQuery) list = list.filter(o => String(o.order_number).includes(searchQuery) || (o.customer_name||'').toLowerCase().includes(searchQuery));
+  const body = document.getElementById('ordersBody');
+  const empty = document.getElementById('ordersEmpty');
+  if(!list.length){
+    body.innerHTML=''; empty.style.display='flex';
+    empty.querySelector('span').textContent = searchQuery ? `No orders match "${searchQuery}".` : 'No orders in this status.';
+    return;
+  }
+  empty.style.display='none';
+  body.innerHTML = list.map(o => {
+    const itemsStr = (window.__orderItemsMap[o.id]||[]).map(i=>`${i.quantity}x ${i.item_name}`).join(', ');
+    const action = actionForStatus(o);
+    const riderName = riderNameFor(o);
+    const actionBtn = action
+      ? `<button class="row-action" onclick="${action.viaRider ? `sendWithRider('${o.id}')` : `advanceOrder('${o.id}')`}">${action.label}</button>`
+      : '';
+    return `
+      <tr class="${o.id===flashOrderId?'row-new':''}">
+        <td class="order-id">#${o.order_number}</td>
+        <td class="mono" style="color:var(--muted);">${new Date(o.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</td>
+        <td><span class="pill">${o.order_type.replace('_',' ')}</span></td>
+        <td style="max-width:220px;">${esc(itemsStr)}</td>
+        <td>${esc(o.customer_name)||'&mdash;'}${riderName ? `<div class="mn-order-rider">Rider: ${esc(riderName)}</div>` : ''}</td>
+        <td>${o.payment_method} <span class="pay-tag ${o.payment_confirmed?'confirmed':'pending'}" onclick="togglePayment('${o.id}', ${!o.payment_confirmed})">${o.payment_confirmed?'&#10003; Paid':'Unpaid'}</span></td>
+        <td class="mono">${money(o.total)}</td>
+        <td>
+          <div style="display:flex;gap:8px;align-items:center;justify-content:flex-end;">
+            ${actionBtn}
+            ${canCancel(o) ? `<button class="row-cancel" onclick="cancelOrder('${o.id}')">Cancel</button>` : ''}
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+function renderOrdersTab(){ renderStatusTabs(); renderOrdersTable(); }
+async function advanceOrder(id){
+  const o = orders.find(x=>x.id===id);
+  if(!o) return;
+  const action = actionForStatus(o);
+  if(!action) return;
+  const { error } = await sb.from('orders').update({ status: action.next }).eq('id', id);
+  if(error){ showToast('Update failed: ' + error.message, true); return; }
+  showToast(`Order #${o.order_number} moved to "${STATUS_LABELS[action.next]}".`);
+}
+async function cancelOrder(id){
+  const o = orders.find(x=>x.id===id);
+  if(!o) return;
+  if(!confirm(`Cancel order #${o.order_number}? This can't be undone.`)) return;
+  const { error } = await sb.from('orders').update({ status:'cancelled' }).eq('id', id);
+  if(error){ showToast('Cancel failed: ' + error.message, true); return; }
+  showToast(`Order #${o.order_number} cancelled.`);
+}
+async function togglePayment(id, newVal){
+  const { error } = await sb.from('orders').update({ payment_confirmed:newVal }).eq('id', id);
+  if(error) showToast('Could not update payment: ' + error.message, true);
+}
+
+/* ================================================================
+   REPORTS
+   ================================================================ */
+async function renderReports(){
+  const startOfDay = new Date(); startOfDay.setHours(0,0,0,0);
+  const { data: todaysOrders, error } = await sb.from('orders').select('id,total,status').gte('created_at', startOfDay.toISOString()).neq('status','cancelled');
+  if(error){ showToast('Could not load reports: ' + error.message, true); return; }
+  const orderCount = (todaysOrders||[]).length;
+  const totalSales = (todaysOrders||[]).reduce((s,o)=>s+Number(o.total||0),0);
+  document.getElementById('repSales').textContent = money(totalSales);
+  document.getElementById('repOrders').textContent = orderCount;
+  document.getElementById('repAvg').textContent = money(orderCount?totalSales/orderCount:0);
+
+  const ids = (todaysOrders||[]).map(o=>o.id);
+  const tbody = document.getElementById('bestSellersBody');
+  if(!ids.length){ tbody.innerHTML = '<tr><td colspan="3">No orders yet today.</td></tr>'; return; }
+  const { data: itemRows } = await sb.from('order_items').select('item_name,quantity,line_total').in('order_id', ids);
+  const totals = {};
+  (itemRows||[]).forEach(r => { const t = totals[r.item_name]||{qty:0,revenue:0}; t.qty+=r.quantity; t.revenue+=Number(r.line_total||0); totals[r.item_name]=t; });
+  const sorted = Object.entries(totals).sort((a,b)=>b[1].qty-a[1].qty).slice(0,10);
+  tbody.innerHTML = sorted.length ? sorted.map(([name,t])=>`<tr><td>${esc(name)}</td><td>${t.qty}</td><td>${money(t.revenue)}</td></tr>`).join('') : '<tr><td colspan="3">No items sold yet today.</td></tr>';
+}
+
+/* ================================================================
+   Navigation + global search
+   ================================================================ */
+const VIEW_TITLES = { dashboard:'Dashboard', pos:'Take Order', orders:'Orders', menu:'Menu', riders:'Riders', reports:'Reports', settings:'Settings' };
+const SEARCH_PLACEHOLDERS = { orders:'Search by order # or customer…', menu:'Search menu items…', pos:'Search menu items…' };
+function switchView(name){
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active', b.dataset.view===name));
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active', v.id==='view-'+name));
+  document.getElementById('viewTitle').textContent = VIEW_TITLES[name];
+  searchQuery = '';
+  const searchEl = document.getElementById('globalSearch');
+  searchEl.value = '';
+  searchEl.placeholder = SEARCH_PLACEHOLDERS[name] || 'Search orders or menu…';
+  if(name==='orders'){ renderOrdersTab(); clearBell(); }
+  if(name==='reports') renderReports();
+  if(name==='menu') renderMenuTab();
+  if(name==='pos') renderItemGrid();
+}
+function handleGlobalSearch(val){
+  searchQuery = val.trim().toLowerCase();
+  const v = currentView();
+  if(v==='orders') renderOrdersTable();
+  else if(v==='menu') renderMenuSubTab();
+  else if(v==='pos') renderItemGrid();
+}
+document.addEventListener('keydown', e => {
+  if(e.key==='/' && document.activeElement.tagName!=='INPUT' && document.activeElement.tagName!=='TEXTAREA'){
+    e.preventDefault();
+    document.getElementById('globalSearch').focus();
+  }
+});
+/* ================================================================
+   MENU: categories, items, add-ons, discounts, banners, settings
+   (ported from the original manager — same data model and logic)
+   ================================================================ */
+let editingCatId = null, editingItemId = null, itemModalCategoryId = null, editingBannerId = null;
+let pendingItemPhotoUrl = null, pendingBannerPhotoUrl = null;
+let activeMenuSubTab = 'items';
+
+function renderMenuTab(){
+  renderCategories();
+  renderBanners();
+  populateDiscountCategorySelect();
+  renderDiscountItems();
+}
+function switchMenuSubTab(name){
+  activeMenuSubTab = name;
+  document.querySelectorAll('.mn-subtab').forEach(b=>b.classList.toggle('active', b.dataset.mnsub===name));
+  document.getElementById('mnsub-items').style.display = name==='items' ? 'block' : 'none';
+  document.getElementById('mnsub-discounts').style.display = name==='discounts' ? 'block' : 'none';
+  document.getElementById('mnsub-banners').style.display = name==='banners' ? 'block' : 'none';
+  searchQuery = '';
+  document.getElementById('globalSearch').value = '';
+}
+function renderMenuSubTab(){
+  if(activeMenuSubTab==='items') renderCategories();
+}
+
+/* ---------- Categories & items ---------- */
+function renderCategories(){
+  const list = document.getElementById('catList');
+  const cats = searchQuery ? categories : categories; // categories themselves aren't filtered — items within are
+  document.getElementById('catEmptyState').style.display = cats.length ? 'none' : 'block';
+  list.innerHTML = cats.map(cat => {
+    const virtual = isVirtualBestseller(cat);
+    let catItems = itemsForCategory(cat);
+    if(searchQuery) catItems = catItems.filter(i=>i.name.toLowerCase().includes(searchQuery));
+    return `
+      <div class="mn-cat-row" id="mncat-${cat.id}">
+        <div class="mn-cat-row-head" onclick="toggleMenuCat('${cat.id}')">
+          <div class="mn-ct-left">
+            <span class="mn-chevron">&#9656;</span>
+            <h4>${esc(cat.name)}</h4>
+            <span class="mn-style-pill">${virtual ? 'auto-pulled' : cat.style}</span>
+            <span class="mn-count">${catItems.length} item${catItems.length===1?'':'s'}</span>
+          </div>
+          <div class="mn-cat-actions" onclick="event.stopPropagation()">
+            <button class="btn-ghost btn-sm" onclick="openCatModal('${cat.id}')">Edit</button>
+            <button class="btn-danger btn-sm" onclick="deleteCategory('${cat.id}')">Delete</button>
+          </div>
+        </div>
+        <div class="mn-items-list">
+          ${virtual ? `<p class="mn-section-help" style="margin-bottom:12px;">Pulled automatically — check "Best Seller" on any item to add it here, uncheck to remove it.</p>` : ''}
+          ${catItems.length ? catItems.map(it => `
+            <div class="mn-item-row">
+              <div class="mn-item-thumb">${it.image_url ? `<img src="${it.image_url}" alt="">` : '&#128247;'}</div>
+              <div class="mn-it-info">
+                <div class="mn-it-name">${esc(it.name)} ${it.is_signature?'&#9733;':''} ${it.is_bestseller?'&#127942;':''} ${it.is_new?'&#10024;':''}</div>
+                <div class="mn-it-meta">${esc(it.tag||'')} ${it.is_placeholder ? '&middot; placeholder price' : ''}</div>
+              </div>
+              <div class="mn-it-price">${money(it.price)}${it.original_price ? `<span class="mn-was">${money(it.original_price)}</span>` : ''}</div>
+              <div class="mn-it-actions">
+                <button class="btn-ghost btn-sm" onclick="openItemModal('${it.category_id}','${it.id}')">Edit</button>
+                ${virtual ? `<button class="btn-danger btn-sm" onclick="removeFromBestsellers('${it.id}')">Remove</button>` : `<button class="btn-danger btn-sm" onclick="deleteItem('${it.id}')">Delete</button>`}
+              </div>
+            </div>
+          `).join('') : '<div class="empty-state" style="padding:16px 0;">No items yet.</div>'}
+          ${virtual ? '' : `<button class="mn-add-item-btn" onclick="openItemModal('${cat.id}')">+ Add item to ${esc(cat.name)}</button>`}
+        </div>
+      </div>
+    `;
+  }).join('') + `<button class="mn-add-cat-btn" onclick="openCatModal()">+ New category</button>`;
+}
+function toggleMenuCat(id){ document.getElementById('mncat-'+id).classList.toggle('open'); }
+
+async function removeFromBestsellers(id){
+  const { error } = await sb.from('items').update({ is_bestseller:false }).eq('id', id);
+  if(error){ showToast('Could not update: ' + error.message, true); return; }
+  showToast('Removed from Best Sellers');
+  await loadMenuAdminData(); renderItemGrid();
+}
+
+function openCatModal(id){
+  editingCatId = id || null;
+  document.getElementById('catModalTitle').textContent = id ? 'Edit category' : 'New category';
+  if(id){
+    const cat = categories.find(c=>c.id===id);
+    document.getElementById('catName').value = cat.name;
+    document.getElementById('catStyle').value = cat.style;
+    document.getElementById('catOrder').value = cat.sort_order;
+  }else{
+    document.getElementById('catName').value = '';
+    document.getElementById('catStyle').value = 'grid';
+    document.getElementById('catOrder').value = categories.length;
+  }
+  document.getElementById('catModalOverlay').classList.add('show');
+}
+function closeCatModal(){ document.getElementById('catModalOverlay').classList.remove('show'); }
+async function saveCategory(){
+  const name = document.getElementById('catName').value.trim();
+  const style = document.getElementById('catStyle').value;
+  const sort_order = Number(document.getElementById('catOrder').value) || 0;
+  if(!name){ alert('Give the category a name.'); return; }
+  if(editingCatId){
+    const { error } = await sb.from('categories').update({ name, style, sort_order }).eq('id', editingCatId);
+    if(error){ showToast('Could not save: ' + error.message, true); return; }
+  }else{
+    const id = name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') + '-' + Math.random().toString(36).slice(2,6);
+    const { error } = await sb.from('categories').insert({ id, name, style, sort_order });
+    if(error){ showToast('Could not save: ' + error.message, true); return; }
+  }
+  closeCatModal(); showToast('Category saved');
+  await loadMenuAdminData(); renderCatRow(); renderItemGrid();
+}
+async function deleteCategory(id){
+  const cat = categories.find(c=>c.id===id);
+  if(!confirm(`Delete "${cat.name}" and every item in it? This can't be undone.`)) return;
+  const { error } = await sb.from('categories').delete().eq('id', id);
+  if(error){ showToast('Could not delete: ' + error.message, true); return; }
+  showToast('Category deleted');
+  await loadMenuAdminData(); renderCatRow(); renderItemGrid();
+}
+
+function openItemModal(categoryId, itemId){
+  itemModalCategoryId = categoryId;
+  editingItemId = itemId || null;
+  pendingItemPhotoUrl = null;
+  document.getElementById('itPhotoStatus').textContent = '';
+  document.getElementById('itemModalTitle').textContent = itemId ? 'Edit item' : 'New item';
+  if(itemId){
+    const it = items.find(i=>i.id===itemId);
+    document.getElementById('itName').value = it.name;
+    document.getElementById('itDesc').value = it.description || '';
+    document.getElementById('itPrice').value = it.price;
+    document.getElementById('itOriginalPrice').value = it.original_price || '';
+    document.getElementById('itTag').value = it.tag || '';
+    document.getElementById('itOrder').value = it.sort_order;
+    document.getElementById('itSig').checked = !!it.is_signature;
+    document.getElementById('itBest').checked = !!it.is_bestseller;
+    document.getElementById('itNew').checked = !!it.is_new;
+    document.getElementById('itPlaceholder').checked = !!it.is_placeholder;
+    document.getElementById('itPhotoPreview').innerHTML = it.image_url ? `<img src="${it.image_url}" alt="">` : '&#128247;';
+    pendingItemPhotoUrl = it.image_url || null;
+    renderAddonRows(Array.isArray(it.addons) ? it.addons : []);
+  }else{
+    document.getElementById('itName').value = '';
+    document.getElementById('itDesc').value = '';
+    document.getElementById('itPrice').value = '';
+    document.getElementById('itOriginalPrice').value = '';
+    document.getElementById('itTag').value = '';
+    document.getElementById('itOrder').value = items.filter(i=>i.category_id===categoryId).length;
+    document.getElementById('itSig').checked = false;
+    document.getElementById('itBest').checked = false;
+    document.getElementById('itNew').checked = false;
+    document.getElementById('itPlaceholder').checked = true;
+    document.getElementById('itPhotoPreview').innerHTML = '&#128247;';
+    renderAddonRows([]);
+  }
+  document.getElementById('itemModalOverlay').classList.add('show');
+}
+function closeItemModal(){ document.getElementById('itemModalOverlay').classList.remove('show'); }
+
+function renderAddonRows(addons){
+  document.getElementById('addonRows').innerHTML = addons.map((a,i) => `
+    <div class="mn-addon-edit-row" data-idx="${i}">
+      <input type="text" value="${String(a.name).replace(/"/g,'&quot;')}" placeholder="e.g. Extra Cheese" onchange="updateAddonRow(${i},'name',this.value)">
+      <input type="number" value="${a.price}" placeholder="Rs." onchange="updateAddonRow(${i},'price',this.value)">
+      <button class="mn-addon-remove-btn" onclick="removeAddonRow(${i})">&times;</button>
+    </div>
+  `).join('');
+}
+function getCurrentAddons(){
+  return Array.from(document.querySelectorAll('#addonRows .mn-addon-edit-row')).map(row => {
+    const inputs = row.querySelectorAll('input');
+    return { name: inputs[0].value.trim(), price: Number(inputs[1].value)||0 };
+  }).filter(a=>a.name);
+}
+function addAddonRow(){ const c = getCurrentAddons(); c.push({name:'',price:0}); renderAddonRows(c); }
+function updateAddonRow(idx, field, value){ const c = getCurrentAddons(); if(c[idx]) c[idx][field] = field==='price' ? Number(value)||0 : value; }
+function removeAddonRow(idx){ const c = getCurrentAddons(); c.splice(idx,1); renderAddonRows(c); }
+
+async function handleItemPhotoUpload(input){
+  const file = input.files[0];
+  if(!file) return;
+  const statusEl = document.getElementById('itPhotoStatus');
+  statusEl.textContent = 'Uploading...';
+  try{
+    const path = `items/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g,'_')}`;
+    const { error } = await sb.storage.from(STORAGE_BUCKET).upload(path, file, {upsert:true});
+    if(error) throw error;
+    const { data } = sb.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+    pendingItemPhotoUrl = data.publicUrl;
+    document.getElementById('itPhotoPreview').innerHTML = `<img src="${pendingItemPhotoUrl}" alt="">`;
+    statusEl.textContent = 'Photo ready — click Save to keep it.';
+  }catch(e){ statusEl.textContent = 'Upload failed: ' + e.message; }
+}
+async function saveItem(){
+  const name = document.getElementById('itName').value.trim();
+  const description = document.getElementById('itDesc').value.trim();
+  const price = Number(document.getElementById('itPrice').value) || 0;
+  const originalPriceRaw = document.getElementById('itOriginalPrice').value;
+  const original_price = originalPriceRaw ? Number(originalPriceRaw) : null;
+  const tag = document.getElementById('itTag').value.trim();
+  const sort_order = Number(document.getElementById('itOrder').value) || 0;
+  const is_signature = document.getElementById('itSig').checked;
+  const is_bestseller = document.getElementById('itBest').checked;
+  const is_new = document.getElementById('itNew').checked;
+  const is_placeholder = document.getElementById('itPlaceholder').checked;
+  if(!name){ alert('Give the item a name.'); return; }
+  const payload = { category_id:itemModalCategoryId, name, description, price, original_price, tag, sort_order, is_signature, is_bestseller, is_new, is_placeholder, image_url:pendingItemPhotoUrl, addons:getCurrentAddons() };
+  if(editingItemId){
+    const { error } = await sb.from('items').update(payload).eq('id', editingItemId);
+    if(error){ showToast('Could not save: ' + error.message, true); return; }
+  }else{
+    const { error } = await sb.from('items').insert(payload);
+    if(error){ showToast('Could not save: ' + error.message, true); return; }
+  }
+  closeItemModal(); showToast('Item saved');
+  await loadMenuAdminData(); renderCatRow(); renderItemGrid();
+}
+async function deleteItem(id){
+  const it = items.find(i=>i.id===id);
+  if(!confirm(`Delete "${it.name}"?`)) return;
+  const { error } = await sb.from('items').delete().eq('id', id);
+  if(error){ showToast('Could not delete: ' + error.message, true); return; }
+  showToast('Item deleted');
+  await loadMenuAdminData(); renderCatRow(); renderItemGrid();
+}
+
+/* ---------- Banners ---------- */
+function renderBanners(){
+  const list = document.getElementById('bannerList');
+  document.getElementById('bannerEmptyState').style.display = banners.length ? 'none' : 'block';
+  list.innerHTML = banners.map(b => `
+    <div class="mn-banner-row">
+      <div class="mn-banner-thumb">${b.image_url ? `<img src="${b.image_url}" alt="">` : '&#128247;'}</div>
+      <div class="mn-bn-info">
+        <div class="mn-bn-title">${esc(b.title)}</div>
+        <div class="mn-bn-sub">${esc(b.subtitle||'')} ${b.badge_text?`&middot; badge: ${esc(b.badge_text)}`:''}</div>
+      </div>
+      <div class="mn-it-actions">
+        <button class="btn-ghost btn-sm" onclick="openBannerModal('${b.id}')">Edit</button>
+        <button class="btn-danger btn-sm" onclick="deleteBanner('${b.id}')">Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+function openBannerModal(id){
+  editingBannerId = id || null;
+  pendingBannerPhotoUrl = null;
+  document.getElementById('bnPhotoStatus').textContent = '';
+  document.getElementById('bannerModalTitle').textContent = id ? 'Edit banner' : 'New banner';
+  if(id){
+    const b = banners.find(x=>x.id===id);
+    document.getElementById('bnTitle').value = b.title;
+    document.getElementById('bnSubtitle').value = b.subtitle || '';
+    document.getElementById('bnBadge').value = b.badge_text || '';
+    document.getElementById('bnOrder').value = b.sort_order;
+    document.getElementById('bnPhotoPreview').innerHTML = b.image_url ? `<img src="${b.image_url}" alt="">` : '&#128247;';
+    pendingBannerPhotoUrl = b.image_url || null;
+  }else{
+    document.getElementById('bnTitle').value = '';
+    document.getElementById('bnSubtitle').value = '';
+    document.getElementById('bnBadge').value = '';
+    document.getElementById('bnOrder').value = banners.length;
+    document.getElementById('bnPhotoPreview').innerHTML = '&#128247;';
+  }
+  document.getElementById('bannerModalOverlay').classList.add('show');
+}
+function closeBannerModal(){ document.getElementById('bannerModalOverlay').classList.remove('show'); }
+async function handleBannerPhotoUpload(input){
+  const file = input.files[0];
+  if(!file) return;
+  const statusEl = document.getElementById('bnPhotoStatus');
+  statusEl.textContent = 'Uploading...';
+  try{
+    const path = `banners/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g,'_')}`;
+    const { error } = await sb.storage.from(STORAGE_BUCKET).upload(path, file, {upsert:true});
+    if(error) throw error;
+    const { data } = sb.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+    pendingBannerPhotoUrl = data.publicUrl;
+    document.getElementById('bnPhotoPreview').innerHTML = `<img src="${pendingBannerPhotoUrl}" alt="">`;
+    statusEl.textContent = 'Photo ready — click Save to keep it.';
+  }catch(e){ statusEl.textContent = 'Upload failed: ' + e.message; }
+}
+async function saveBanner(){
+  const title = document.getElementById('bnTitle').value.trim();
+  const subtitle = document.getElementById('bnSubtitle').value.trim();
+  const badge_text = document.getElementById('bnBadge').value.trim();
+  const sort_order = Number(document.getElementById('bnOrder').value) || 0;
+  if(!title){ alert('Give the banner a title.'); return; }
+  const payload = { title, subtitle, badge_text, sort_order, image_url:pendingBannerPhotoUrl };
+  if(editingBannerId){
+    const { error } = await sb.from('banners').update(payload).eq('id', editingBannerId);
+    if(error){ showToast('Could not save: ' + error.message, true); return; }
+  }else{
+    const { error } = await sb.from('banners').insert(payload);
+    if(error){ showToast('Could not save: ' + error.message, true); return; }
+  }
+  closeBannerModal(); showToast('Banner saved');
+  await loadMenuAdminData();
+}
+async function deleteBanner(id){
+  if(!confirm('Delete this banner?')) return;
+  const { error } = await sb.from('banners').delete().eq('id', id);
+  if(error){ showToast('Could not delete: ' + error.message, true); return; }
+  showToast('Banner deleted');
+  await loadMenuAdminData();
+}
+
+/* ---------- Discounts ---------- */
+let discSelectedPct = 15;
+function populateDiscountCategorySelect(){
+  const sel = document.getElementById('discCategorySelect');
+  const current = sel.value || '__all__';
+  sel.innerHTML = `<option value="__all__">All categories</option>` + categories.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  sel.value = categories.some(c=>c.id===current) ? current : '__all__';
+}
+function setDiscPreset(pct){
+  discSelectedPct = pct;
+  document.getElementById('discPctInput').value = '';
+  document.querySelectorAll('.mn-preset-btn').forEach(b=>b.classList.toggle('active', Number(b.dataset.pct)===pct));
+}
+function clearDiscPreset(){
+  document.querySelectorAll('.mn-preset-btn').forEach(b=>b.classList.remove('active'));
+  discSelectedPct = Number(document.getElementById('discPctInput').value) || 0;
+}
+function renderDiscountItems(){
+  const sel = document.getElementById('discCategorySelect');
+  const catId = sel ? sel.value : '__all__';
+  const relevantCats = catId==='__all__' ? categories.filter(c=>!isVirtualBestseller(c)) : categories.filter(c=>c.id===catId);
+  document.getElementById('discountItemList').innerHTML = relevantCats.map(cat => {
+    const virtual = isVirtualBestseller(cat);
+    const catItems = itemsForCategory(cat);
+    if(!catItems.length) return '';
+    const rows = catItems.map(it => {
+      const onSale = it.original_price && Number(it.original_price) > Number(it.price);
+      const pct = onSale ? Math.round((1 - it.price/it.original_price)*100) : 0;
+      return `
+        <div class="mn-discount-item-row">
+          <input type="checkbox" class="disc-item-checkbox" data-id="${it.id}">
+          <div class="mn-item-thumb">${it.image_url ? `<img src="${it.image_url}" alt="">` : '&#128247;'}</div>
+          <div class="mn-it-info">
+            <div class="mn-it-name">${esc(it.name)}</div>
+            <div class="mn-it-meta">${money(it.price)}${onSale ? ` (was ${money(it.original_price)})` : ''}</div>
+          </div>
+          ${onSale ? `<span class="mn-discount-sale-badge">${pct}% off</span>` : '<span></span>'}
+        </div>`;
+    }).join('');
+    return catId==='__all__' ? `<div class="mn-discount-cat-label">${esc(cat.name)}</div>${rows}` : rows;
+  }).join('') || '<div class="empty-state">No items in this category yet.</div>';
+  document.getElementById('discSelectAll').checked = false;
+}
+function toggleSelectAllDiscount(checked){ document.querySelectorAll('.disc-item-checkbox').forEach(cb=>cb.checked=checked); }
+function getSelectedDiscountIds(){ return Array.from(document.querySelectorAll('.disc-item-checkbox:checked')).map(cb=>cb.dataset.id); }
+async function applyBulkDiscount(){
+  const ids = getSelectedDiscountIds();
+  if(!ids.length){ alert('Select at least one item first.'); return; }
+  const pct = discSelectedPct;
+  if(!pct || pct<=0 || pct>=100){ alert('Enter a discount percentage between 1 and 99, or pick a preset.'); return; }
+  const updates = ids.map(id => {
+    const it = items.find(i=>i.id===id);
+    if(!it) return null;
+    const base = (it.original_price && Number(it.original_price)>0) ? Number(it.original_price) : Number(it.price);
+    const newPrice = Math.round(base * (1 - pct/100));
+    return sb.from('items').update({ price:newPrice, original_price:base }).eq('id', id);
+  }).filter(Boolean);
+  const results = await Promise.all(updates);
+  const failed = results.find(r=>r.error);
+  if(failed) showToast('Some items failed to update: ' + failed.error.message, true);
+  else showToast(`${ids.length} item${ids.length===1?'':'s'} put on sale`);
+  await loadMenuAdminData(); renderItemGrid();
+}
+async function removeBulkDiscount(){
+  const ids = getSelectedDiscountIds();
+  if(!ids.length){ alert('Select at least one item first.'); return; }
+  const updates = ids.map(id => {
+    const it = items.find(i=>i.id===id);
+    if(!it || !it.original_price) return null;
+    return sb.from('items').update({ price:it.original_price, original_price:null }).eq('id', id);
+  }).filter(Boolean);
+  if(!updates.length){ showToast('None of the selected items are on sale.', true); return; }
+  const results = await Promise.all(updates);
+  const failed = results.find(r=>r.error);
+  if(failed) showToast('Some items failed to update: ' + failed.error.message, true);
+  else showToast('Discount removed');
+  await loadMenuAdminData(); renderItemGrid();
+}
+
+/* ---------- Settings ---------- */
+function renderSettingsTab(){
+  document.getElementById('setAnnounce').value = settings.announcement_text || '';
+  document.getElementById('setWhatsapp').value = settings.whatsapp_number || '';
+  document.getElementById('setTax').value = settings.tax_rate || 0;
+  document.getElementById('setPromoCode').value = settings.promo_code || '';
+  document.getElementById('setPromoPct').value = settings.promo_discount_percent || 0;
+  document.getElementById('setDeliveryFeeEnabled').checked = !!settings.delivery_fee_enabled;
+  document.getElementById('setDeliveryFeeAmount').value = settings.delivery_fee_amount || 0;
+}
+async function saveSiteSettings(){
+  const payload = {
+    id:'main',
+    announcement_text: document.getElementById('setAnnounce').value.trim(),
+    whatsapp_number: document.getElementById('setWhatsapp').value.trim(),
+    tax_rate: Number(document.getElementById('setTax').value) || 0,
+    promo_code: document.getElementById('setPromoCode').value.trim(),
+    promo_discount_percent: Number(document.getElementById('setPromoPct').value) || 0,
+    delivery_fee_enabled: document.getElementById('setDeliveryFeeEnabled').checked,
+    delivery_fee_amount: Number(document.getElementById('setDeliveryFeeAmount').value) || 0,
+  };
+  const { error } = await sb.from('site_settings').upsert(payload);
+  if(error){ showToast('Could not save: ' + error.message, true); return; }
+  showToast('Settings saved');
+  await loadMenuAdminData();
+}
+
+/* ---------- Riders ---------- */
+let editingRiderId = null;
+function renderRidersTab(){
+  const body = document.getElementById('ridersBody');
+  document.getElementById('ridersEmpty').style.display = riders.length ? 'none' : 'block';
+  body.innerHTML = riders.map(r => `
+    <tr>
+      <td>${esc(r.name)}</td>
+      <td class="mono">${esc(r.phone)}</td>
+      <td><span class="badge ${r.active?'badge-ready':'badge-completed'}">${r.active?'Active':'Inactive'}</span></td>
+      <td>
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+          <button class="btn-ghost btn-sm" onclick="openRiderModal('${r.id}')">Edit</button>
+          <button class="btn-danger btn-sm" onclick="deleteRider('${r.id}')">Delete</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+function openRiderModal(id){
+  editingRiderId = id || null;
+  document.getElementById('riderModalTitle').textContent = id ? 'Edit rider' : 'New rider';
+  if(id){
+    const r = riders.find(x=>x.id===id);
+    document.getElementById('riderName').value = r.name;
+    document.getElementById('riderPhone').value = r.phone;
+    document.getElementById('riderActive').checked = !!r.active;
+  }else{
+    document.getElementById('riderName').value = '';
+    document.getElementById('riderPhone').value = '';
+    document.getElementById('riderActive').checked = true;
+  }
+  document.getElementById('riderModalOverlay').classList.add('show');
+}
+function closeRiderModal(){ document.getElementById('riderModalOverlay').classList.remove('show'); }
+async function saveRider(){
+  const name = document.getElementById('riderName').value.trim();
+  const phone = document.getElementById('riderPhone').value.trim();
+  const active = document.getElementById('riderActive').checked;
+  if(!name || !phone){ alert('Add a name and phone number.'); return; }
+  if(editingRiderId){
+    const { error } = await sb.from('riders').update({ name, phone, active }).eq('id', editingRiderId);
+    if(error){ showToast('Could not save: ' + error.message, true); return; }
+  }else{
+    const { error } = await sb.from('riders').insert({ name, phone, active });
+    if(error){ showToast('Could not save: ' + error.message, true); return; }
+  }
+  closeRiderModal(); showToast('Rider saved');
+  await loadMenuAdminData();
+}
+async function deleteRider(id){
+  const r = riders.find(x=>x.id===id);
+  if(!confirm(`Remove ${r.name} from riders?`)) return;
+  const { error } = await sb.from('riders').delete().eq('id', id);
+  if(error){ showToast('Could not delete: ' + error.message, true); return; }
+  showToast('Rider removed');
+  await loadMenuAdminData();
+}
+
+/* ---------- Rider assignment (at "send with rider" time) ---------- */
+function busyRiderIds(){
+  return new Set(orders.filter(o=>o.status==='out_for_delivery' && o.rider_id).map(o=>o.rider_id));
+}
+let pendingRiderAssignOrderId = null;
+async function sendWithRider(orderId){
+  const activeRiders = riders.filter(r=>r.active);
+  if(!activeRiders.length){
+    showToast('Add a rider in the Riders tab first.', true);
+    return;
+  }
+  const busy = busyRiderIds();
+  const available = activeRiders.filter(r=>!busy.has(r.id));
+
+  if(available.length === 1){
+    await assignRiderAndSend(orderId, available[0].id);
+    return;
+  }
+  if(available.length === 0){
+    pendingRiderAssignOrderId = orderId;
+    document.getElementById('riderPickerNote').textContent = "All riders are currently out — pick one to send anyway.";
+    renderRiderPickerList(activeRiders, busy);
+    document.getElementById('riderPickerOverlay').classList.add('show');
+    return;
+  }
+  pendingRiderAssignOrderId = orderId;
+  document.getElementById('riderPickerNote').textContent = "More than one rider is free — who's taking this order?";
+  renderRiderPickerList(available, busy);
+  document.getElementById('riderPickerOverlay').classList.add('show');
+}
+function renderRiderPickerList(list, busySet){
+  document.getElementById('riderPickerList').innerHTML = list.map(r => {
+    const isBusy = busySet.has(r.id);
+    return `<button class="mn-rider-pick-btn ${isBusy?'busy':''}" onclick="pickRider('${r.id}')">
+      <span>${esc(r.name)} <span class="mn-rp-phone">${esc(r.phone)}</span></span>
+      ${isBusy ? '<span class="mn-rp-busy-tag">Out on a delivery</span>' : ''}
+    </button>`;
+  }).join('');
+}
+async function pickRider(riderId){
+  const orderId = pendingRiderAssignOrderId;
+  closeRiderPicker();
+  await assignRiderAndSend(orderId, riderId);
+}
+function closeRiderPicker(){
+  document.getElementById('riderPickerOverlay').classList.remove('show');
+  pendingRiderAssignOrderId = null;
+}
+async function assignRiderAndSend(orderId, riderId){
+  const { error } = await sb.from('orders').update({ status:'out_for_delivery', rider_id:riderId }).eq('id', orderId);
+  if(error){ showToast('Could not update: ' + error.message, true); return; }
+  const rider = riders.find(r=>r.id===riderId);
+  showToast(rider ? `Sent with ${rider.name}.` : 'Order sent for delivery.');
+}
+</script>
+</body>
+</html>
